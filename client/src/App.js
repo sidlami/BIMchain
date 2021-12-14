@@ -2,7 +2,8 @@
 import './App.css';
 import React, {useEffect, useState} from 'react';
 import Web3 from 'web3';
-import {ADRESS, ABI} from './config.js' //importing the ganache truffle address of deployed smart contract
+import axios from'axios';
+import {ADRESS, ABI} from './config.js'; //importing the ganache truffle address of deployed smart contract
 
 function App() {
 
@@ -27,6 +28,25 @@ function App() {
       console.log("issuer of smart contract: ", issuerContract)
 
       //load in all of the user's personal bim models hashed value keys
+
+        //1. authenticate and get token to use forge
+        const token = await axios({
+          method:'post', 
+          url:'https://developer.api.autodesk.com/authentication/v1/authenticate',
+          data:{
+            grant_type : 'client_credentials',
+            client_id : 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
+            client_secret : 'RptOywJiF7ZPWJMH',
+            scope : 'data:read data:write data:create bucket:read bucket:create'
+          },
+          headers:{
+            "Access-Control-Allow-Origin" : "*",
+            "Access-Control-Allow-Headers" : "Origin, X-Requested-With, Content-Type, Accept"
+          }
+        });
+        console.log(token.data.access_token)
+
+        //2. get URN and GUID of bim models from blockchain
         const personalBIMmodels = []
 
       //lazy load in all values of mapping variable
