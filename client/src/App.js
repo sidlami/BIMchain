@@ -30,24 +30,31 @@ function App() {
       //load in all of the user's personal bim models hashed value keys
 
         //1. authenticate and get token to use forge
-        const token = await axios({
-          method:'post', 
-          url:'https://developer.api.autodesk.com/authentication/v1/authenticate',
-          data:{
-            grant_type : 'client_credentials',
-            client_id : 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
-            client_secret : 'RptOywJiF7ZPWJMH',
-            scope : 'data:read data:write data:create bucket:read bucket:create'
-          },
-          headers:{
-            "Access-Control-Allow-Origin" : "*",
-            "Access-Control-Allow-Headers" : "Origin, X-Requested-With, Content-Type, Accept"
-          }
-        });
-        console.log(token.data.access_token)
-
-        //2. get URN and GUID of bim models from blockchain
+        try{
+          const token = await axios.post(
+            "https://developer.api.autodesk.com/authentication/v1/authenticate",
+            {
+              grant_type : "client_credentials",
+              client_id : "XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7",
+              client_secret : "RptOywJiF7ZPWJMH",
+              scope : "data:read data:write data:create bucket:read bucket:create"
+            },
+            {
+              headers: {
+                "Content-Type" : "application/x-www-form-urlencoded"
+              }
+            }
+          )
+          console.log(token.data.access_token)
+        }catch(e){
+          console.log(e)
+        }
+        
+        //2. get URN of all personal bim models from blockchain
         const personalBIMmodels = []
+
+        //3. get all GUID of one personal bim model from offchain storage (=OSS of autodesk forge) based on URN of bim model
+
 
       //lazy load in all values of mapping variable
       for(var i = 0; i < personalBIMmodels.length; i++){
