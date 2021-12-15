@@ -2,24 +2,18 @@
 //note: once you change the smart contract you need to re-deploy it and get the new adress as well as abi
 
 //the adress of smart contract on ganache (once you start ganache you manually need to change this value)
-export const ADRESS = '0x23739eA9498F791E8131B36528210D25cbF96ebB' 
+export const ADRESS = '0xD9F54E143809cBD5AaA2E2b35c3D0a2a33ad1C6D' 
 
 //the abi of a smart contract stores all functions and its relevant infromation, like input and output data type
 export const ABI = [
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "hashedModel",
-				"type": "uint256"
-			}
-		],
-		"name": "getTokenizedModel",
+		"inputs": [],
+		"name": "getOffchainModels",
 		"outputs": [
 			{
-				"internalType": "string",
+				"internalType": "uint256[]",
 				"name": "",
-				"type": "string"
+				"type": "uint256[]"
 			}
 		],
 		"stateMutability": "view",
@@ -42,31 +36,13 @@ export const ABI = [
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "hashedModel",
+				"name": "urn_new_offchain_model",
 				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "tokenizedModel",
-				"type": "string"
 			}
 		],
-		"name": "setTokenizedModel",
+		"name": "setOffchainModels",
 		"outputs": [],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "testCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	}
 ]
