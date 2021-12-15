@@ -3,6 +3,7 @@ import './App.css';
 import React, {useEffect, useState} from 'react';
 import Web3 from 'web3';
 import axios from'axios';
+import qs from 'qs';
 import {ADRESS, ABI} from './config.js'; //importing the ganache truffle address of deployed smart contract
 
 function App() {
@@ -31,14 +32,15 @@ function App() {
 
         //1. authenticate and get token to use forge
         try{
+          var data = qs.stringify({
+            'grant_type': 'client_credentials',
+            'client_id': 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
+            'client_secret': 'RptOywJiF7ZPWJMH',
+            'scope': 'data:read data:write data:create bucket:read bucket:create'
+          });
           const token = await axios.post(
             "https://developer.api.autodesk.com/authentication/v1/authenticate",
-            {
-              grant_type : "client_credentials",
-              client_id : "XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7",
-              client_secret : "RptOywJiF7ZPWJMH",
-              scope : "data:read data:write data:create bucket:read bucket:create"
-            },
+            data,
             {
               headers: {
                 "Content-Type" : "application/x-www-form-urlencoded"
