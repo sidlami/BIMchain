@@ -2,7 +2,7 @@
 //note: once you change the smart contract you need to re-deploy it and get the new adress as well as abi
 
 //the adress of smart contract on ganache (once you start ganache you manually need to change this value)
-export const ADRESS = '0xD9F54E143809cBD5AaA2E2b35c3D0a2a33ad1C6D' 
+export const ADRESS = '0xC8e311Af424e2Be14541190C273e9cbDBA21dc1F' 
 
 //the abi of a smart contract stores all functions and its relevant infromation, like input and output data type
 export const ABI = [
@@ -11,9 +11,9 @@ export const ABI = [
 		"name": "getOffchainModels",
 		"outputs": [
 			{
-				"internalType": "uint256[]",
+				"internalType": "string[]",
 				"name": "",
-				"type": "uint256[]"
+				"type": "string[]"
 			}
 		],
 		"stateMutability": "view",
@@ -35,9 +35,9 @@ export const ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "string",
 				"name": "urn_new_offchain_model",
-				"type": "uint256"
+				"type": "string"
 			}
 		],
 		"name": "setOffchainModels",

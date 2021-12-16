@@ -7,16 +7,17 @@ contract On_offchain {
     address public owner = msg.sender;
     
     //mapping variable stores all personal offchain bim models by the users wallet address
-    //the bim models are all hashed and stored in the uint256 array
+    //the uint256 array stores contains all of the user's URNs of the bim model stored in the OSS of autodesk forge,
+    //where the bim models are actually stored 
     mapping(address => uint256[]) private personal_offchain_models;
     
-    //get hash key of all personal offchain bim models based on user's address
-    function getOffchainModels(address user) public view returns(uint256[] memory){
-        return personal_offchain_models[user]; //returns zero if user has no personal offchain bim model
+    //get URN of all personal offchain bim models based on user's address
+    function getOffchainModels() public view returns(uint256[] memory){
+        return personal_offchain_models[msg.sender]; //returns zero if user has no personal offchain bim model
     }
     
-    //add the hash key of a new personal offchain bim model to all of the user's offchin bim models
-    function setOffchainModels(uint256 new_offchain_model) public{
-        personal_offchain_models[msg.sender].push(new_offchain_model);
+    //add URN of a new personal offchain bim model to all of the user's offchain bim models
+    function setOffchainModels(uint256 urn_new_offchain_model) public{
+        personal_offchain_models[msg.sender].push(urn_new_offchain_model);
     }
 }
