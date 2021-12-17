@@ -6,31 +6,6 @@ import axios from'axios';
 import qs from 'qs';
 import {ADRESS, ABI} from './config.js'; //importing the ganache truffle address of deployed smart contract as well as the abi of the smart contract
 
-async function authenticateToForge(){
-  try{
-    var data = qs.stringify({
-      'grant_type': 'client_credentials',
-      'client_id': 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
-      'client_secret': 'RptOywJiF7ZPWJMH',
-      'scope': 'data:read data:write data:create bucket:read bucket:create'
-    });
-
-    const token = await axios.post(
-      "https://developer.api.autodesk.com/authentication/v1/authenticate",
-      data,
-      {
-        headers: {
-          "Content-Type" : "application/x-www-form-urlencoded"
-        }
-      }
-    )
-
-    return token.data.access_token
-  }catch(e){
-    return e
-  }
-}
-
 function App() {
 
   //state variables
@@ -59,31 +34,16 @@ function App() {
 
       //load in all of the user's personal bim models hashed value keys
       try{
-        //1. authenticate and get token to use forge
-        var data = qs.stringify({
-          'grant_type': 'client_credentials',
-          'client_id': 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
-          'client_secret': 'RptOywJiF7ZPWJMH',
-          'scope': 'data:read data:write data:create bucket:read bucket:create'
-        });
-        const token = await axios.post(
-          "https://developer.api.autodesk.com/authentication/v1/authenticate",
-          data,
-          {
-            headers: {
-              "Content-Type" : "application/x-www-form-urlencoded"
-            }
-          }
-        )
-        console.log("forge token:", token.data.access_token)
 
-        //2. get URN of all personal bim models stored on blockchain
+        //get URN of all personal bim models stored on blockchain
         // --> THIS IS DOWNLOADING ALL OF THE ONCHAIN PARTs OF THE OFFCHAIN BIM MODELS AT THE SAME TIME
         // --> this is the download in an on- and offchain architecture, meaning there is no transaction fee for performing a call
         const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
 
+        //store personal bim models in frontend
         setPersonalBIMmodels(personalOffchainmodels)
 
+        //print personal bim models to console
         if(personalOffchainmodels?.length !== 0){
 
           for(var i=0; i < personalOffchainmodels.length; i++){
@@ -95,12 +55,6 @@ function App() {
         }else{
           console.log("You currently do not possess any offchain bim models!")
         }
-
-        //3. get all GUID of one personal bim model from offchain storage (=OSS of autodesk forge) based on URN of bim model
-        //lazy load in all values of mapping variable
-        /*for(var i = 0; i < personalBIMmodels.length; i++){
-          
-        }*/
       }catch(e){
         console.log(e)
       }
@@ -108,12 +62,93 @@ function App() {
     test()
   }, [])
 
+  //function for authenticating to autodesk forge app, returns token 
+  const authenticateToForge = async () => {
+    try{
+      var data = qs.stringify({
+        'grant_type': 'client_credentials',
+        'client_id': 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
+        'client_secret': 'RptOywJiF7ZPWJMH',
+        'scope': 'data:read data:write data:create bucket:read bucket:create'
+      });
+  
+      const token = await axios.post(
+        "https://developer.api.autodesk.com/authentication/v1/authenticate",
+        data,
+        {
+          headers: {
+            "Content-Type" : "application/x-www-form-urlencoded"
+          }
+        }
+      )
+      
+      return token.data.access_token
+    }catch(e){
+      return e
+    }
+  }
+
+  //function uploads URN string to blockchain (note: costs occure)
   const upload = async () => {
     console.log(uploadURN)
     try{
       const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
       const smartCon = new web3.eth.Contract(ABI, ADRESS)
       await smartCon.methods.setOffchainModels(uploadURN).send({from : user})
+    }catch(e){
+      console.log(e)
+    }
+  }
+
+  //function retrieves data from OSS bucket, transforms the property data 
+  //and passes the data to blockchain for further computation
+  const compute = async () => {
+    console.log("selected urn:", selectedURN)
+    try{
+      //1. authenticate
+      const token = await authenticateToForge()
+      console.log("token:",token)
+
+      //2. get URN from onchain and thus ensuring valid usage of bim model
+      //--> user selects URN and frontend stores in variable: selectedURN
+
+      //3. get metadata based on the selected URN stored in variable: selectedURN 
+      const metadata = await axios.get(
+        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata`, 
+        {
+          headers : {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      console.log("metadata:", metadata)
+      
+      //4. extract model guid from meta data
+      const guid = metadata.data.data.metadata[0].guid
+      console.log("guid:", metadata.data.data.metadata[0].guid)
+      
+      //5. get properties based on urn 
+      const properties = await axios.get(
+        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata/${guid}/properties`, 
+        {
+          headers : {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      console.log("properties:", properties)
+
+      //6. transform property data into a predefined struct so that solidity can work with the data
+      //this is the interesting interface between onchain bim model data and offchain usage of this data
+
+      
+      //7. send properties to memory of smart contract which then performs the onchain computation
+      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
+      const smartCon = new web3.eth.Contract(ABI, ADRESS)
+      //await smartCon.methods.setOffchainModels().send({from : user})
+
+      //8. printout onchain cpomputation result + performance aka cost
+      
     }catch(e){
       console.log(e)
     }
@@ -133,7 +168,7 @@ function App() {
         <div>
           <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
           <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
-            <option value="" selected disabled hidden>Choose here</option>
+            <option value="" disabled hidden>Choose here</option>
             {
               personalBIMmodels.map(item =>{
                 return(
@@ -144,7 +179,7 @@ function App() {
               }) 
             }
           </select>
-          <button type="button">Compute on chain</button>
+          <button type="button" onClick={compute}>Compute on chain</button>
           <button type="button">Download</button>
         </div>    
       }
