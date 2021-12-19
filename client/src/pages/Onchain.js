@@ -63,6 +63,7 @@ function Onchain() {
           setOssBIMmodels(urns)
   
           //get all bim models stored in IPFS/filecoin
+          //https://web3.storage/
           
     
             
