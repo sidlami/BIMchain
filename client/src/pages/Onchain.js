@@ -1,5 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import Web3 from 'web3';
+import { Web3Storage, getFilesFromPath } from 'web3.storage'; //issue not clear: https://github.com/web3-storage/web3.storage/issues/549
+//import { Web3Storage} from 'web3.storage'
 import axios from'axios';
 import CryptoJS from 'crypto-js';
 import qs from 'qs';
@@ -8,6 +10,7 @@ import {ADRESS, ABI} from '../config.js'; //importing the ganache truffle addres
 function Onchain() {
 
   //state variables
+  const [path, setPath] = useState("") //holds the path to the file which the user wants tu upload
   const [ossBIMmodels, setOssBIMmodels] = useState([]) //holds the URNs of all offchain bim models stored in the OSS
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored on IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
@@ -149,7 +152,27 @@ function Onchain() {
 
   //function uploads bim model from OSS to IPFS/filecoin
   const upload = async () => {
-    console.log(selectedURN)
+    try {
+
+      //connect to filecoin netwrok via web3.Storage
+      const web3Storage_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDAxMUUwQTkxMTcyMTgzNzYzZTU3MEFjQTM1MzAxMWI1OEU0MkMzRWEiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NDAwMzI1ODUxMjYsIm5hbWUiOiJiaW1fbW9kZWxfc3RvcmFnZSJ9.c2-5R8vBPZPza5_pffqlM9Y0HSOYfojZ-Spr8eOvOO8'
+      const storage = new Web3Storage({ web3Storage_token })
+
+      //get files which should be uploaded
+      const pathFiles = await getFilesFromPath(path)
+      const files = []
+      files.push(...pathFiles)
+      console.log(`Uploading ${files.length} files`)
+
+      //upload the files to filecoin network 
+      const cid = await storage.put(files)
+      console.log('Content added with CID:', cid)
+      
+      //store the key (aka cid) to the files on filecoin on the ethereum blockchain
+
+    } catch (error) {
+      console.log(error)
+    }
     /*try{
       const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
       const smartCon = new web3.eth.Contract(ABI, ADRESS)
@@ -232,8 +255,12 @@ function Onchain() {
       <p>
         This page tests the possibility to store BIM models through filecoin in an IPFS.
       </p>
-      <h4>Uploadable BIM models:</h4>
-      {ossBIMmodels.length === 0 ?
+      <h4>Upload your BIM models:</h4>
+      <label htmlFor='input-file'>Select and upload bim model: </label>
+      <input type="file" value={file} onChange={(e)=>console.log(e)}></input>
+      <button type="button"onClick={upload}>Upload</button>
+      {
+      /*ossBIMmodels.length === 0 ?
         <p>There are no uploadable bim models in the OSS bucket!</p>
         :
         <div>
@@ -252,31 +279,31 @@ function Onchain() {
           </select>
           <button type="button">Upload</button>
         </div>     
-      }
+        */}
 
         
-        <h4>Your onchain BIM models:</h4>
-        {personalBIMmodels.length === 0 ?
-            <p>You currently do not possess any onchain BIM models in the IPFS on your account: '{user}' according to the Ethereum Blockchain!</p>
-            :
-            <div>
-            <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
-            <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
-                <option value="" disabled hidden>Choose here</option>
-                {
-                personalBIMmodels.map(item =>{
-                    return(
-                    <option key ={item} value={item}>
-                        {item}
-                    </option>
-                    )
-                }) 
-                }
-            </select>
-            <button type="button">Compute on chain</button>
-            <button type="button">Download</button>
-            </div>     
-        }
+      <h4>Your onchain BIM models:</h4>
+      {personalBIMmodels.length === 0 ?
+        <p>You currently do not possess any onchain BIM models in the IPFS on your account: '{user}' according to the Ethereum Blockchain!</p>
+        :
+        <div>
+          <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
+          <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
+              <option value="" disabled hidden>Choose here</option>
+              {
+              personalBIMmodels.map(item =>{
+                  return(
+                  <option key ={item} value={item}>
+                      {item}
+                  </option>
+                  )
+              }) 
+              }
+          </select>
+          <button type="button">Compute on chain</button>
+          <button type="button">Download</button>
+        </div>     
+      }
     </div>
   );
 }
