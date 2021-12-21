@@ -1,7 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import Web3 from 'web3';
-import { Web3Storage, getFilesFromPath } from 'web3.storage'; //issue not clear: https://github.com/web3-storage/web3.storage/issues/549
-//import { Web3Storage} from 'web3.storage'
 import axios from'axios';
 import CryptoJS from 'crypto-js';
 import qs from 'qs';
@@ -150,25 +148,19 @@ function Onchain() {
     }
   }
 
-  //function uploads bim model from OSS to IPFS/filecoin
+  //function uploads bim model to IPFS and stores the key on ethereum
+  //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
   const upload = async () => {
     try {
 
-      //connect to filecoin netwrok via web3.Storage
-      const web3Storage_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDAxMUUwQTkxMTcyMTgzNzYzZTU3MEFjQTM1MzAxMWI1OEU0MkMzRWEiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NDAwMzI1ODUxMjYsIm5hbWUiOiJiaW1fbW9kZWxfc3RvcmFnZSJ9.c2-5R8vBPZPza5_pffqlM9Y0HSOYfojZ-Spr8eOvOO8'
-      const storage = new Web3Storage({ web3Storage_token })
+      //connect to ipfs
 
-      //get files which should be uploaded
-      const pathFiles = await getFilesFromPath(path)
-      const files = []
-      files.push(...pathFiles)
-      console.log(`Uploading ${files.length} files`)
+      //get files which should be uploaded from ui
+    
 
-      //upload the files to filecoin network 
-      const cid = await storage.put(files)
-      console.log('Content added with CID:', cid)
+      //upload the files to IPFS 
       
-      //store the key (aka cid) to the files on filecoin on the ethereum blockchain
+      //store the key (aka cid) to the files in the IPFS on the ethereum blockchain
 
     } catch (error) {
       console.log(error)
@@ -257,7 +249,7 @@ function Onchain() {
       </p>
       <h4>Upload your BIM models:</h4>
       <label htmlFor='input-file'>Select and upload bim model: </label>
-      <input type="file" value={file} onChange={(e)=>console.log(e)}></input>
+      {<input type="file"></input>}
       <button type="button"onClick={upload}>Upload</button>
       {
       /*ossBIMmodels.length === 0 ?
