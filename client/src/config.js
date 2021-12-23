@@ -195,3 +195,85 @@ export const ABI_IPFS = [
 		"type": "function"
 	}
 ]
+
+//address of smart contract for onchain ipfs on ganache
+export const ADRESS_ONCHAIN100 = '0x8010585E292a03BFE5E06636994b98061f8fA573'
+
+//ABI for onchain ipfs smart contract
+export const ABI_ONCHAIN100100 = [
+	{
+		"inputs": [],
+		"name": "getOnchainModels",
+		"outputs": [
+			{
+				"components": [
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "data",
+								"type": "string"
+							}
+						],
+						"internalType": "struct Onchain100.MetaData",
+						"name": "meta",
+						"type": "tuple"
+					},
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "data",
+								"type": "string"
+							}
+						],
+						"internalType": "struct Onchain100.GeomData",
+						"name": "geom",
+						"type": "tuple"
+					},
+					{
+						"internalType": "uint256",
+						"name": "uploadTime",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct Onchain100.BIMmodel[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_meta",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_geom",
+				"type": "string"
+			}
+		],
+		"name": "setOnchainModels",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]

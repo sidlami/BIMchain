@@ -12,7 +12,6 @@ contract Onchain {
         uint fileSize;
         string fileType;
         string fileName;
-        string fileDescription;
         uint uploadTime;
     }
     
@@ -27,13 +26,6 @@ contract Onchain {
         // Make sure uploader address exists
         require(msg.sender!=address(0));
         return personal_IPFS_models[msg.sender]; //returns zero if user has no personal IPFS bim model
-    }
-    
-    //add a new personal IPFS bim model as type 'File' to all of the user's IPFS bim models
-    function setIPFSModels(File memory new_IPFS_model) public{
-        // Make sure uploader address exists
-        require(msg.sender!=address(0));
-        return personal_IPFS_models[msg.sender].push(new_IPFS_model);
     }
 
     //get count of personal IPFS bim models
@@ -55,17 +47,15 @@ contract Onchain {
         uint fileSize,
         string fileType,
         string fileName, 
-        string fileDescription,
         uint uploadTime
     );
 
-    function uploadFile(string memory _fileHash, uint _fileSize, string memory _fileType, string memory _fileName, string memory _fileDescription) public {
+    //add a new personal IPFS bim model as type 'File' to all of the user's IPFS bim models
+    function uploadFile(string memory _fileHash, uint _fileSize, string memory _fileType, string memory _fileName) public {
         // Make sure the file hash exists
         require(bytes(_fileHash).length > 0);
         // Make sure file type exists
         require(bytes(_fileType).length > 0);
-        // Make sure file description exists
-        require(bytes(_fileDescription).length > 0);
         // Make sure file fileName exists
         require(bytes(_fileName).length > 0);
         // Make sure uploader address exists
@@ -77,9 +67,9 @@ contract Onchain {
         setPersonalModelCount();
 
         // Add File to the contract
-        personal_IPFS_models[msg.sender].push(File(personal_model_count[msg.sender], _fileHash, _fileSize, _fileType, _fileName, _fileDescription, block.timestamp));
+        personal_IPFS_models[msg.sender].push(File(personal_model_count[msg.sender], _fileHash, _fileSize, _fileType, _fileName, block.timestamp));
 
         // Trigger an event
-        emit FileUploaded(personal_model_count[msg.sender], _fileHash, _fileSize, _fileType, _fileName, _fileDescription, block.timestamp);
+        emit FileUploaded(personal_model_count[msg.sender], _fileHash, _fileSize, _fileType, _fileName, block.timestamp);
     }
 }
