@@ -8,6 +8,8 @@
     "concurrently": "^6.4.0",
     "crypto-js": "^4.1.1",
     "express": "^4.17.1",
+    "ipfs-http-client": "^48.2.2",
+    "moment": "^2.29.1",
     "nodemon": "^2.0.15",
     "qs": "^6.7.0",
     "truffle": "^5.4.23",

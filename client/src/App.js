@@ -29,7 +29,7 @@ function App() {
       <br></br>
       <br></br>
       
-      <h3>2. ONCHAIN STORAGE (IPFS/FILECOIN)</h3>
+      <h3>2. ONCHAIN STORAGE (IPFS)</h3>
       <Onchain ></Onchain>
     </div>
   );

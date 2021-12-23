@@ -1,19 +1,27 @@
 import React, {useEffect, useState} from 'react';
 import Web3 from 'web3';
 import axios from'axios';
-import CryptoJS from 'crypto-js';
+import moment from 'moment';
 import qs from 'qs';
-import {ADRESS, ABI} from '../config.js'; //importing the ganache truffle address of deployed smart contract as well as the abi of the smart contract
+import {ADRESS_IPFS, ABI_IPFS } from '../config'; //importing the ganache truffle address of deployed smart contract as well as the abi of the smart contract
+
+//Connectin to IPFS via infura
+const ipfsClient = require('ipfs-http-client')
+const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
+
 
 function Onchain() {
 
   //state variables
-  const [path, setPath] = useState("") //holds the path to the file which the user wants tu upload
-  const [ossBIMmodels, setOssBIMmodels] = useState([]) //holds the URNs of all offchain bim models stored in the OSS
-  const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored on IPFS
+  const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
+
+  const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants tu upload
+  const [name, setName] = useState("") //holds the name of the to be uploaded file
+  const [type, setType] = useState("") //holds the type of the to be uploaded file
+
+  const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored in IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
-  const [selectedURN, setSelectedURN] = useState("") //holdes the URN of the personal BIM model which was selected by the user for perfoming the onchain computation
-  const [uploadURN, setUploadURN] = useState("") //holdes the URN of the personal BIM model which was inputed by the user and should be uploaded to blockchain. this URN is created in the process of uploading the bim model to the OSS of the model derivative api
+  const [selectedURN, setSelectedURN] = useState("") //holdes the CID of the personal BIM model which was selected by the user for perfoming the onchain computation or was selected for a download
 
   //on mount
   useEffect(()=>{
@@ -22,15 +30,24 @@ function Onchain() {
 
           //get the user
           const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-          const accounts = await web3.eth.getAccounts()
-          setUser(accounts[0])
+          const account = await web3.currentProvider.selectedAddress;
+          setUser(account)
+
+          //connect to smart contract managing the IPFS storage method
+          const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
+          setOnchainSmartContract(smartCon)
+
+          //get all bim models stored in IPFS/filecoin
+          //https://web3.storage/
+          const models = await smartCon.methods.getIPFSModels().call()
+          setPersonalBIMmodels(models)
       
-          //authenticate
-          const token = await authenticateToForge()
+          //authenticate to autodesk forge
+          /*const token = await authenticateToForge()
           console.log("token:", token)
 
           //get buckets
-          /*
+          
           const bucket = await axios.get(
             `https://developer.api.autodesk.com/oss/v2/buckets`, 
             {
@@ -40,7 +57,7 @@ function Onchain() {
             }
           )
           console.log(bucket)
-          */
+          
 
           //get URN of all bim models stored in the OSS of autodesk forge
           //link: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/
@@ -61,12 +78,7 @@ function Onchain() {
               urns.push(CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(models.data.items[i].objectId)))
           }
           console.log("URNs in OSS Bucket", urns)
-          setOssBIMmodels(urns)
-  
-          //get all bim models stored in IPFS/filecoin
-          //https://web3.storage/
-          
-    
+          setOssBIMmodels(urns)*/
             
         } catch (error) {
             console.log(error)
@@ -147,34 +159,47 @@ function Onchain() {
       return e
     }
   }
+  
+  //function which captures the inputed file before user uploads it to IPFS
+  const captureFile = event => {
+    event.preventDefault()
+
+    const file = event.target.files[0]
+
+    const reader = new window.FileReader()
+    reader.readAsArrayBuffer(file)
+    reader.onloadend = () => {
+      setBuffer(Buffer(reader.result))
+      setType(file.type)
+      setName(file.name)
+    }
+  }
 
   //function uploads bim model to IPFS and stores the key on ethereum
   //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
   const upload = async () => {
     try {
+      // Adding file inside state variable 'buffer' to IPFS using the IPFS connection from above
+      const decentralFile = await ipfs.add(buffer)
 
-      //connect to ipfs
-
-      //get files which should be uploaded from ui
-    
-
-      //upload the files to IPFS 
-      
-      //store the key (aka cid) to the files in the IPFS on the ethereum blockchain
-
+      //store the key (aka cid) to the files in IPFS on the ethereum blockchain
+      onchainSmartContract.methods.uploadFile(
+        decentralFile.path,
+        decentralFile.size,
+        type === '' ? 'none' : type, 
+        name
+      ).send({from:user}).on('transactionHash', (hash) => {
+        window.location.reload()
+      }).on('error', (e) =>{
+        console.log(e)
+        window.alert('Error')
+      })
     } catch (error) {
       console.log(error)
     }
-    /*try{
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      await smartCon.methods.setOffchainModels(uploadURN).send({from : user})
-    }catch(e){
-      console.log(e)
-    }*/
   }
 
-  //function downloads bim model from IPFS/filecoin and loads it into frontend
+  //function downloads bim model from IPFS and loads it into frontend
   const download = async () => {
     console.log(selectedURN)
     /*
@@ -245,48 +270,61 @@ function Onchain() {
   return (
     <div>
       <p>
-        This page tests the possibility to store BIM models through filecoin in an IPFS.
+        This page tests the possibility to store BIM models in the Inter Planetary File System (IPFS). 
+        It is common practice to use filecoin as an additonal layer on IPFS for an incentive to store files decentrally.
+        This prototype, however, does not make use of it altough there are use cases for which it makes sense to use filecoin as well.
       </p>
-      <h4>Upload your BIM models:</h4>
+      <h4>Upload your BIM model to IPFS:</h4>
       <label htmlFor='input-file'>Select and upload bim model: </label>
-      {<input type="file"></input>}
+      <input name='input-file' type="file" onChange={captureFile}/>
       <button type="button"onClick={upload}>Upload</button>
-      {
-      /*ossBIMmodels.length === 0 ?
-        <p>There are no uploadable bim models in the OSS bucket!</p>
-        :
-        <div>
-          <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
-          <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
-            <option value="" disabled hidden>Choose here</option>
-            {
-              ossBIMmodels.map(item =>{
-                return(
-                  <option key ={item} value={item}>
-                    {item}
-                  </option>
-                )
-              }) 
-            }
-          </select>
-          <button type="button">Upload</button>
-        </div>     
-        */}
-
         
-      <h4>Your onchain BIM models:</h4>
+      <h4>Your BIM models in IPFS:</h4>
       {personalBIMmodels.length === 0 ?
-        <p>You currently do not possess any onchain BIM models in the IPFS on your account: '{user}' according to the Ethereum Blockchain!</p>
+        <p>You currently do not possess any BIM models in IPFS on your account: '{user}' according to the Ethereum Blockchain!</p>
         :
-        <div>
-          <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
+        <table className="table-sm table-bordered text-monospace" style={{ width: '1000px', maxHeight: '450px'}}>
+          <thead style={{ 'fontSize': '15px' }}>
+            <tr className="bg-dark text-white">
+              <th scope="col" style={{ width: '10px'}}>id</th>
+              <th scope="col" style={{ width: '200px'}}>name</th>
+              <th scope="col" style={{ width: '120px'}}>type</th>
+              <th scope="col" style={{ width: '90px'}}>size</th>
+              <th scope="col" style={{ width: '90px'}}>date</th>
+              <th scope="col" style={{ width: '120px'}}>hash/view/get</th>
+            </tr>
+          </thead>
+          { personalBIMmodels.map((file, key) => {
+            return(
+              <thead style={{ 'fontSize': '12px' }} key={key}>
+                <tr>
+                  <td>{file.fileId}</td>
+                  <td>{file.fileName}</td>
+                  <td>{file.fileType}</td>
+                  <td>{file.fileSize}</td>
+                  <td>{moment.unix(file.uploadTime).format('h:mm:ss A M/D/Y')}</td>
+                  <td>
+                    <a
+                      href={"https://ipfs.infura.io/ipfs/" + file.fileHash}
+                      rel="noopener noreferrer"
+                      target="_blank">
+                      {file.fileHash.substring(0,10)}...
+                    </a>
+                  </td>
+                </tr>
+              </thead>
+            )
+          })}
+        </table>
+        /*<div>
+          <label htmlFor="select-model">Select one of your BIM models in IPFS: </label>
           <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
               <option value="" disabled hidden>Choose here</option>
               {
               personalBIMmodels.map(item =>{
                   return(
-                  <option key ={item} value={item}>
-                      {item}
+                  <option key ={item.fileHash} value={item.fileHash}>
+                      {item.fileName+" ("+item.fileHash+")"}
                   </option>
                   )
               }) 
@@ -294,7 +332,7 @@ function Onchain() {
           </select>
           <button type="button">Compute on chain</button>
           <button type="button">Download</button>
-        </div>     
+        </div>*/     
       }
     </div>
   );
