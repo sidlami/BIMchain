@@ -2,6 +2,7 @@
 import './App.css';
 import React, {useEffect, useState} from 'react';
 import Onchain from './pages/Onchain';
+import Onchain100 from './pages/Onchain100';
 import On_offchain from './pages/On_offchain';
 
 
@@ -10,7 +11,7 @@ function App() {
   const [selectedMethod, setSelectedMethod] = useState(0)
 
   return (
-    <div>
+    <div style={{position: "absolute", left: "50px"}}>
       <h1>Welcome to BIMchain</h1>
       <p>
         This DApp functions as a prototype for testing the possibilities to store BIM models on the ethereum blockchain.
@@ -22,15 +23,20 @@ function App() {
         <option value={1}>on and offchain storage</option>
         <option value={2}>onchain storage (IPFS/Filecoin)</option>
       </select>*/}
-      <br></br>
-      <br></br>
-      <h3>1. ON- AND OFFCHAIN STORAGE</h3>
-      <On_offchain></On_offchain>
-      <br></br>
-      <br></br>
-      
-      <h3>2. ONCHAIN STORAGE (IPFS)</h3>
-      <Onchain ></Onchain>
+      <div style={{position: "absolute", left: "25px"}}>
+        <h3>1. ON- AND OFFCHAIN STORAGE</h3>
+        <On_offchain></On_offchain>
+        <br></br>
+        <br></br>
+        
+        <h3>2. ONCHAIN STORAGE (IPFS)</h3>
+        <Onchain ></Onchain>
+        <br></br>
+        <br></br>
+
+        <h3>3. ONCHAIN STORAGE (100% ON ETHEREUM)</h3>
+        <Onchain100></Onchain100>
+      </div>
     </div>
   );
 }
