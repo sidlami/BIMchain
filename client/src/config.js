@@ -48,19 +48,13 @@ export const ABI = [
 ]
 
 //address of smart contract for onchain ipfs on ganache
-export const ADRESS_IPFS = '0x01Cefe566b273adBF23b954f7d0355452Da30E7A'
+export const ADRESS_IPFS = '0x4A4d5530885E965C52679bE7ED482D75732a73fc'
 
 //ABI for onchain ipfs smart contract
 export const ABI_IPFS = [
 	{
 		"anonymous": false,
 		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "fileId",
-				"type": "uint256"
-			},
 			{
 				"indexed": false,
 				"internalType": "string",
@@ -102,11 +96,6 @@ export const ABI_IPFS = [
 			{
 				"components": [
 					{
-						"internalType": "uint256",
-						"name": "fileId",
-						"type": "uint256"
-					},
-					{
 						"internalType": "string",
 						"name": "fileHash",
 						"type": "string"
@@ -135,19 +124,6 @@ export const ABI_IPFS = [
 				"internalType": "struct Onchain.File[]",
 				"name": "",
 				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getPersonalModelCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
