@@ -162,22 +162,22 @@ function On_offchain() {
             <p>You currently do not possess any offchain BIM models on your account: '{user}' according to the Ethereum Blockchain!</p>
             :
             <div>
-            <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
-            <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
-                <option value="" disabled hidden>Choose here</option>
-                {
-                personalBIMmodels.map(item =>{
-                    return(
-                    <option key ={item} value={item}>
-                        {item}
-                    </option>
-                    )
-                }) 
-                }
-            </select>
-            <button type="button" onClick={compute}>Compute on chain</button>
-            <button type="button">Download</button>
-            </div>     
+              <label htmlFor="select-model">Select your personal offchain BIM model to compute onchain: </label>
+              <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
+                  <option value="" disabled hidden>Choose here</option>
+                  {
+                  personalBIMmodels.map(item =>{
+                      return(
+                      <option key ={item} value={item}>
+                          {item}
+                      </option>
+                      )
+                  }) 
+                  }
+              </select>
+              <button type="button" onClick={compute}>Compute on chain</button>
+              <button type="button">Download</button>
+            </div>    
         }
 
         <h4>Upload your BIM model</h4>

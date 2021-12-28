@@ -200,7 +200,7 @@ export const ABI_IPFS = [
 export const ADRESS_ONCHAIN100 = '0x8010585E292a03BFE5E06636994b98061f8fA573'
 
 //ABI for onchain ipfs smart contract
-export const ABI_ONCHAIN100100 = [
+export const ABI_ONCHAIN100 = [
 	{
 		"inputs": [],
 		"name": "getOnchainModels",
