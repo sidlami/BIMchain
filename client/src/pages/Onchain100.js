@@ -178,9 +178,39 @@ function Onchain100() {
     }
 
     //function downloads bim model from ethereum and loads it into frontend
-    const download = async () => {
-    console.log(selectedURN)
-    }
+    const download = async (key) => {
+        try {
+          var end, start;
+          start = new Date();
+          //call getter of smartcontract to get bim model from blockchain
+          end = new Date();
+          
+          /*
+          if(file.headers["content-type"] === 'application/json'){
+    
+            console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
+            
+            let performance_time = end.getTime() - start.getTime()
+    
+            //add data to googlesheets
+            await axios.post(
+              'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+              {
+                "method" : "onchain_ipfs",
+                "operation"	: "download",
+                "file_key" : ipfs_key,
+                "file_size"	: file_size, //in bytes
+                "gas"	: "0",
+                "time" : performance_time //in ms
+              }  
+            )  
+          }else{
+            console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+          }*/
+        } catch (error) {
+          console.log(error)
+        }
+      }
 
     const compute = async () => {
 

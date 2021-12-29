@@ -5,7 +5,6 @@ import Onchain from './pages/Onchain';
 import Onchain100 from './pages/Onchain100';
 import On_offchain from './pages/On_offchain';
 
-
 function App() {
 
   const [selectedMethod, setSelectedMethod] = useState(0)

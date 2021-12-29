@@ -7,6 +7,7 @@ import {ADRESS, ABI} from '../config.js'; //importing the ganache truffle addres
 function On_offchain() {
 
   //state variables
+  const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored URN of all user's personal offchain bim models in the frontend
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedURN, setSelectedURN] = useState("") //holdes the URN of the personal BIM model which was selected by the user for perfoming the onchain computation
@@ -24,6 +25,7 @@ function On_offchain() {
 
       //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
       const smartCon = new web3.eth.Contract(ABI, ADRESS)
+      setOnchainSmartContract(smartCon)
       console.log("SmartContract", smartCon)
 
       //test connection to smart contract
@@ -141,14 +143,47 @@ function On_offchain() {
 
       
       //7. send properties to memory of smart contract which then performs the onchain computation
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      //await smartCon.methods.setOffchainModels().send({from : user})
+      //await onchainSmartContract.methods.setOffchainModels().send({from : user})
 
       //8. printout onchain cpomputation result + performance aka cost
       
     }catch(e){
       console.log(e)
+    }
+  }
+
+  //function downloads bim model from CDE and loads it into frontend???
+  const download = async (key) => {
+    try {
+      var end, start;
+      start = new Date();
+      //call getter of smartcontract to get bim model from CDE
+      end = new Date();
+      
+      /*
+      if(file.headers["content-type"] === 'application/json'){
+
+        console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
+        
+        let performance_time = end.getTime() - start.getTime()
+
+        //add data to googlesheets
+        await axios.post(
+          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+          {
+            "method" : "onchain_ipfs",
+            "operation"	: "download",
+            "file_key" : ipfs_key,
+            "file_size"	: file_size, //in bytes
+            "gas"	: "0",
+            "time" : performance_time //in ms
+          }  
+        )  
+      }else{
+        console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+      }*/
+    } catch (error) {
+      console.log(error)
     }
   }
 

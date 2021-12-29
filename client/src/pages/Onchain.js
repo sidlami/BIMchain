@@ -9,7 +9,6 @@ import {ADRESS_IPFS, ABI_IPFS } from '../config'; //importing the ganache truffl
 const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
 
-
 function Onchain() {
 
   //state variables
@@ -200,76 +199,42 @@ function Onchain() {
   }
 
   //function downloads bim model from IPFS and loads it into frontend
-  const download = async () => {
-    console.log(selectedURN)
-    /*
-    try{
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      await smartCon.methods.setOffchainModels(uploadURN).send({from : user})
-    }catch(e){
-      console.log(e)
-    }*/
+  const download = async (ipfs_key, file_size) => {
+    try {
+      var end, start;
+      start = new Date();
+      const file = await axios.get("https://ipfs.infura.io/ipfs/" + ipfs_key)
+      console.log(file)
+      end = new Date();
+      
+      if(file.headers["content-type"] === 'application/json'){
+
+        console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
+        let performance_time = end.getTime() - start.getTime()
+
+        //add data to googlesheets
+        await axios.post(
+          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+          {
+            "method" : "onchain_ipfs",
+            "operation"	: "download",
+            "file_key" : ipfs_key,
+            "file_size"	: file_size, //bytes
+            "gas"	: "0",
+            "time" : performance_time //in ms
+          }  
+        )  
+      }else{
+        console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+      }
+    } catch (error) {
+      console.log(error)
+    }
   }
 
-  /*
-  //function retrieves data from OSS bucket, transforms the property data 
-  //and passes the data to blockchain for further computation
-  const compute = async () => {
-    console.log("selected urn:", selectedURN)
-    try{
-      //1. authenticate
-      const token = await authenticateToForge()
-      console.log("token:",token)
-
-      //2. get URN from onchain and thus ensuring valid usage of bim model
-      //--> user selects URN and frontend stores in variable: selectedURN
-
-      //3. get metadata based on the selected URN stored in variable: selectedURN 
-      const metadata = await axios.get(
-        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata`, 
-        {
-          headers : {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      console.log("metadata:", metadata)
-      
-      //4. extract model guid from meta data
-      const guid = metadata.data.data.metadata[0].guid
-      console.log("guid:", metadata.data.data.metadata[0].guid)
-      
-      //5. get properties based on urn 
-      const properties = await axios.get(
-        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata/${guid}/properties`, 
-        {
-          headers : {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      console.log("properties:", properties)
-
-      //6. transform property data into a predefined struct so that solidity can work with the data
-      //this is the interesting interface between onchain bim model data and offchain usage of this data
-
-      
-      //7. send properties to memory of smart contract which then performs the onchain computation
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      //await smartCon.methods.setOffchainModels().send({from : user})
-
-      //8. printout onchain cpomputation result + performance aka cost
-      
-    }catch(e){
-      console.log(e)
-    }
-  }*/
-
-  const compute = async (ipfs_url) =>{
+  const compute = async (ipfs_key) =>{
     try {
-      const file = await axios.get(ipfs_url)
+      const file = await axios.get("https://ipfs.infura.io/ipfs/" + ipfs_key)
 
       if(file.headers["content-type"] === 'application/json'){
         const meta = file.data.meta_data
@@ -319,7 +284,8 @@ function Onchain() {
                   <td>{file.fileSize}</td>
                   <td>{moment.unix(file.uploadTime).format('h:mm:ss A M/D/Y')}</td>
                   <td>
-                    <button type="button" onClick={()=>compute("https://ipfs.infura.io/ipfs/" + file.fileHash)} >Compute on-chain</button>
+                    <button type="button" onClick={()=>compute(file.fileHash)} >Compute on-chain</button>
+                    <button type="button" onClick={()=>download(file.fileHash, file.fileSize)} >Download</button>
                     {/*<a
                       href={}
                       rel="noopener noreferrer"
