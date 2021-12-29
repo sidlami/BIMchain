@@ -267,6 +267,23 @@ function Onchain() {
     }
   }*/
 
+  const compute = async (ipfs_url) =>{
+    try {
+      const file = await axios.get(ipfs_url)
+
+      if(file.headers["content-type"] === 'application/json'){
+        const meta = file.data.meta_data
+        const geom = file.data.geom_data
+
+        //call onchain computation smart contract for computing 
+          //onchainSmartContract.methods.compute(meta, geom).call() or send() ???
+      }
+      console.log(file)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
     <div>
       <p>
@@ -290,7 +307,7 @@ function Onchain() {
               <th scope="col" style={{ width: '120px'}}>type</th>
               <th scope="col" style={{ width: '90px'}}>size</th>
               <th scope="col" style={{ width: '90px'}}>date</th>
-              <th scope="col" style={{ width: '120px'}}>hash/view/get</th>
+              <th scope="col" style={{ width: '120px'}}>action</th>
             </tr>
           </thead>
           { personalBIMmodels.map((file, key) => {
@@ -302,12 +319,13 @@ function Onchain() {
                   <td>{file.fileSize}</td>
                   <td>{moment.unix(file.uploadTime).format('h:mm:ss A M/D/Y')}</td>
                   <td>
-                    <a
-                      href={"https://ipfs.infura.io/ipfs/" + file.fileHash}
+                    <button type="button" onClick={()=>compute("https://ipfs.infura.io/ipfs/" + file.fileHash)} >Compute on-chain</button>
+                    {/*<a
+                      href={}
                       rel="noopener noreferrer"
                       target="_blank">
                       {file.fileHash.substring(0,10)}...
-                    </a>
+                    </a>*/}
                   </td>
                 </tr>
               </thead>
