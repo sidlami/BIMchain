@@ -92,9 +92,33 @@ function On_offchain() {
   const upload = async () => {
     console.log(uploadURN)
     try{
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      await smartCon.methods.setOffchainModels(uploadURN).send({from : user})
+      var end, start;
+      start = new Date();
+      await onchainSmartContract.methods.setOffchainModels(uploadURN).send({from : user})
+      end = new Date();
+
+      /*if(file.headers["content-type"] === 'application/json'){
+
+        console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
+        
+        let performance_time = end.getTime() - start.getTime()
+
+        //add data to googlesheets
+        await axios.post(
+          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+          {
+            "timestamp" : end,
+            "method" : "onchain_ipfs",
+            "operation"	: "download",
+            "file_key" : ipfs_key,
+            "file_size"	: file_size, //in bytes
+            "gas"	: "0",
+            "time" : performance_time //in ms
+          }  
+        )  
+      }else{
+        console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+      }*/
     }catch(e){
       console.log(e)
     }
@@ -161,6 +185,7 @@ function On_offchain() {
       end = new Date();
       
       /*
+      //check if model is how it should be
       if(file.headers["content-type"] === 'application/json'){
 
         console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
@@ -171,6 +196,7 @@ function On_offchain() {
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
           {
+            "timestamp" : end,
             "method" : "onchain_ipfs",
             "operation"	: "download",
             "file_key" : ipfs_key,

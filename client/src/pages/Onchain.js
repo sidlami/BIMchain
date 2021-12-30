@@ -13,11 +13,7 @@ function Onchain() {
 
   //state variables
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
-
   const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants tu upload
-  const [name, setName] = useState("") //holds the name of the to be uploaded file
-  const [type, setType] = useState("") //holds the type of the to be uploaded file
-
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored in IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedURN, setSelectedURN] = useState("") //holdes the CID of the personal BIM model which was selected by the user for perfoming the onchain computation or was selected for a download
@@ -25,63 +21,63 @@ function Onchain() {
   //on mount
   useEffect(()=>{
     const test = async () => {
-        try {
+      try {
 
-          //get the user
-          const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-          const account = await web3.currentProvider.selectedAddress;
-          setUser(account)
+        //get the user
+        const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
+        const account = await web3.currentProvider.selectedAddress;
+        setUser(account)
 
-          //connect to smart contract managing the IPFS storage method
-          const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
-          setOnchainSmartContract(smartCon)
+        //connect to smart contract managing the IPFS storage method
+        const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
+        setOnchainSmartContract(smartCon)
 
-          //get all bim models stored in IPFS/filecoin
-          //https://web3.storage/
-          const models = await smartCon.methods.getIPFSModels().call()
-          setPersonalBIMmodels(models)
-      
-          //authenticate to autodesk forge
-          /*const token = await authenticateToForge()
-          console.log("token:", token)
+        //get all bim models stored in IPFS/filecoin
+        //https://web3.storage/
+        const models = await smartCon.methods.getIPFSModels().call()
+        setPersonalBIMmodels(models)
+    
+        //authenticate to autodesk forge
+        /*const token = await authenticateToForge()
+        console.log("token:", token)
 
-          //get buckets
-          
-          const bucket = await axios.get(
-            `https://developer.api.autodesk.com/oss/v2/buckets`, 
-            {
-                headers : {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-          )
-          console.log(bucket)
-          
-
-          //get URN of all bim models stored in the OSS of autodesk forge
-          //link: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/
-          const bucketKey = 'test_bim_models'
-
-          const models = await axios.get(
-            `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects`, 
-            {
+        //get buckets
+        
+        const bucket = await axios.get(
+          `https://developer.api.autodesk.com/oss/v2/buckets`, 
+          {
               headers : {
                   Authorization: `Bearer ${token}`
               }
-            }
-          )
-  
-          var urns = []
-          for(var i = 0; models.data.items.length; i++){
-              console.log(models.data.items[i].objectId)
-              urns.push(CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(models.data.items[i].objectId)))
           }
-          console.log("URNs in OSS Bucket", urns)
-          setOssBIMmodels(urns)*/
-            
-        } catch (error) {
-            console.log(error)
+        )
+        console.log(bucket)
+        
+
+        //get URN of all bim models stored in the OSS of autodesk forge
+        //link: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/
+        const bucketKey = 'test_bim_models'
+
+        const models = await axios.get(
+          `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects`, 
+          {
+            headers : {
+                Authorization: `Bearer ${token}`
+            }
+          }
+        )
+
+        var urns = []
+        for(var i = 0; models.data.items.length; i++){
+            console.log(models.data.items[i].objectId)
+            urns.push(CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(models.data.items[i].objectId)))
         }
+        console.log("URNs in OSS Bucket", urns)
+        setOssBIMmodels(urns)*/
+          
+      } catch (error) {
+        console.log(error)
+      }
     }
     test()
 
@@ -162,15 +158,11 @@ function Onchain() {
   //function which captures the inputed file before user uploads it to IPFS
   const captureFile = event => {
     event.preventDefault()
-
     const file = event.target.files[0]
-
     const reader = new window.FileReader()
     reader.readAsArrayBuffer(file)
     reader.onloadend = () => {
       setBuffer(Buffer(reader.result))
-      setType(file.type)
-      setName(file.name)
     }
   }
 
@@ -178,20 +170,41 @@ function Onchain() {
   //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
   const upload = async () => {
     try {
+
+      var end, start;
+      start = new Date();
+
       // Adding file inside state variable 'buffer' to IPFS using the IPFS connection from above
       const decentralFile = await ipfs.add(buffer)
 
       //store the key (aka cid) to the files in IPFS on the ethereum blockchain
       onchainSmartContract.methods.uploadFile(
-        decentralFile.path,
-        decentralFile.size,
-        type === '' ? 'none' : type, 
-        name
+        decentralFile.path
       ).send({from:user}).on('transactionHash', (hash) => {
+
+        //compute performance time
+        end = new Date();
+        let performance_time = end.getTime() - start.getTime()
+
+        //get transaction's used gas amount
+        var gas = 0 
+
+        /*
+        await axios.post(
+          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+          { 
+            "timestamp" : end,
+            "method" : "onchain_ipfs",
+            "operation"	: "upload",
+            "file_key" : decentralFile.path,
+            "file_size"	: decentralFile.size, //bytes
+            "gas"	: gas,
+            "time" : performance_time //in ms
+          }  
+        )*/
         window.location.reload()
       }).on('error', (e) =>{
         console.log(e)
-        window.alert('Error')
       })
     } catch (error) {
       console.log(error)
@@ -199,23 +212,35 @@ function Onchain() {
   }
 
   //function downloads bim model from IPFS and loads it into frontend
-  const download = async (ipfs_key, file_size) => {
+  const download = async (ipfs_key) => {
     try {
       var end, start;
       start = new Date();
       const file = await axios.get("https://ipfs.infura.io/ipfs/" + ipfs_key)
-      console.log(file)
       end = new Date();
-      
+
+      //check if bim model is how it should be
       if(file.headers["content-type"] === 'application/json'){
 
-        console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
-        let performance_time = end.getTime() - start.getTime()
+        //print out model
+        console.log("downloaded bim model from ipfs")
+        console.log("meta data:", file.data.meta_data)
+        console.log("geom data:", file.data.geom_data)
 
-        //add data to googlesheets
+        //compute performance time
+        var performance_time = end.getTime() - start.getTime()
+        console.log('Onchain_ipfs download performance time in ms:', performance_time)
+
+        //get size of the downloaded file in bytes
+        var file_size  = Buffer.byteLength(JSON.stringify(file.data))
+        console.log("Onchain_ipfs download file size:", file_size)
+
+        /*
+        //add measurement data to google spreadsheets
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          {
+          { 
+            "timestamp" : end,
             "method" : "onchain_ipfs",
             "operation"	: "download",
             "file_key" : ipfs_key,
@@ -223,7 +248,7 @@ function Onchain() {
             "gas"	: "0",
             "time" : performance_time //in ms
           }  
-        )  
+        )*/  
       }else{
         console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
       }
@@ -268,24 +293,18 @@ function Onchain() {
         <table style={{ width: '1000px', maxHeight: '450px'}}>
           <thead style={{ 'fontSize': '15px' }}>
             <tr>
-              <th scope="col" style={{ width: '200px'}}>name</th>
-              <th scope="col" style={{ width: '120px'}}>type</th>
-              <th scope="col" style={{ width: '90px'}}>size</th>
-              <th scope="col" style={{ width: '90px'}}>date</th>
+              <th scope="col" style={{ width: '200px'}}>ipfs key</th>
               <th scope="col" style={{ width: '120px'}}>action</th>
             </tr>
           </thead>
-          { personalBIMmodels.map((file, key) => {
+          {personalBIMmodels.map((ipfs_key, key) => {
             return(
               <thead style={{ 'fontSize': '12px' }} key={key}>
                 <tr>
-                  <td>{file.fileName}</td>
-                  <td>{file.fileType}</td>
-                  <td>{file.fileSize}</td>
-                  <td>{moment.unix(file.uploadTime).format('h:mm:ss A M/D/Y')}</td>
+                  <td>{ipfs_key}</td>
                   <td>
-                    <button type="button" onClick={()=>compute(file.fileHash)} >Compute on-chain</button>
-                    <button type="button" onClick={()=>download(file.fileHash, file.fileSize)} >Download</button>
+                    <button type="button" onClick={()=>compute(ipfs_key)} >Compute on-chain</button>
+                    <button type="button" onClick={()=>download(ipfs_key)} >Download</button>
                     {/*<a
                       href={}
                       rel="noopener noreferrer"

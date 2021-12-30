@@ -17,15 +17,19 @@ contract Onchain100 {
     struct BIMmodel {
         MetaData meta;
         GeomData geom;
-        uint uploadTime;
     }
     
     //mapping variable stores all personal offchain bim models by the users wallet address
     mapping(address => BIMmodel[]) private personal_onchain_models;
     
-    //get URN of all personal offchain bim models based on user's address
-    function getOnchainModels() public view returns(BIMmodel[] memory){
-        return personal_onchain_models[msg.sender]; //returns zero if user has no personal offchain bim model
+    //get number of personal onchain bim models
+    function getOnchainModelKeys() public view returns(uint){
+        return personal_onchain_models[msg.sender].length; //returns zero if user has no personal offchain bim model
+    }
+
+    //get specific onchaim bim model based on its key
+    function getOnchainModels(uint _key) public view returns(BIMmodel memory){
+        return personal_onchain_models[msg.sender][_key]; //returns zero if user has no personal offchain bim model
     }
     
     //add URN of a new personal offchain bim model to all of the user's offchain bim models
@@ -38,8 +42,7 @@ contract Onchain100 {
         personal_onchain_models[msg.sender].push(
             BIMmodel(
                 MetaData(_meta),
-                GeomData(_geom),
-                block.timestamp
+                GeomData(_geom)
             )
         );
     }

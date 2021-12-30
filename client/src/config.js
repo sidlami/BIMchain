@@ -48,82 +48,18 @@ export const ABI = [
 ]
 
 //address of smart contract for onchain ipfs on ganache
-export const ADRESS_IPFS = '0x4A4d5530885E965C52679bE7ED482D75732a73fc'
+export const ADRESS_IPFS = '0x35e116CcA9B645F2A97B50F776aFc5640093c022'
 
 //ABI for onchain ipfs smart contract
 export const ABI_IPFS = [
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "fileHash",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "fileSize",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "fileType",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "fileName",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "uploadTime",
-				"type": "uint256"
-			}
-		],
-		"name": "FileUploaded",
-		"type": "event"
-	},
 	{
 		"inputs": [],
 		"name": "getIPFSModels",
 		"outputs": [
 			{
-				"components": [
-					{
-						"internalType": "string",
-						"name": "fileHash",
-						"type": "string"
-					},
-					{
-						"internalType": "uint256",
-						"name": "fileSize",
-						"type": "uint256"
-					},
-					{
-						"internalType": "string",
-						"name": "fileType",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "fileName",
-						"type": "string"
-					},
-					{
-						"internalType": "uint256",
-						"name": "uploadTime",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct Onchain.File[]",
+				"internalType": "string[]",
 				"name": "",
-				"type": "tuple[]"
+				"type": "string[]"
 			}
 		],
 		"stateMutability": "view",
@@ -148,21 +84,6 @@ export const ABI_IPFS = [
 				"internalType": "string",
 				"name": "_fileHash",
 				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_fileSize",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "_fileType",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_fileName",
-				"type": "string"
 			}
 		],
 		"name": "uploadFile",
@@ -173,12 +94,31 @@ export const ABI_IPFS = [
 ]
 
 //address of smart contract for onchain ipfs on ganache
-export const ADRESS_ONCHAIN100 = '0x8010585E292a03BFE5E06636994b98061f8fA573'
+export const ADRESS_ONCHAIN100 = '0x35E4346d9B5edfcEBA67FE5729a85CD975E03C1C'
 
 //ABI for onchain ipfs smart contract
 export const ABI_ONCHAIN100 = [
 	{
 		"inputs": [],
+		"name": "getOnchainModelKeys",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_key",
+				"type": "uint256"
+			}
+		],
 		"name": "getOnchainModels",
 		"outputs": [
 			{
@@ -206,16 +146,11 @@ export const ABI_ONCHAIN100 = [
 						"internalType": "struct Onchain100.GeomData",
 						"name": "geom",
 						"type": "tuple"
-					},
-					{
-						"internalType": "uint256",
-						"name": "uploadTime",
-						"type": "uint256"
 					}
 				],
-				"internalType": "struct Onchain100.BIMmodel[]",
+				"internalType": "struct Onchain100.BIMmodel",
 				"name": "",
-				"type": "tuple[]"
+				"type": "tuple"
 			}
 		],
 		"stateMutability": "view",
