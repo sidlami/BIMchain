@@ -13,6 +13,7 @@ const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' 
 function Onchain100() {
 
     //state variables
+    const [web3, setWeb3] = useState(null)
     const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
     const [meta, setMeta] = useState("") //holds the inputed meta data of the to be uploaded bim model
     const [geom, setGeom] = useState("") //holds the inputed geometry data of the to be uploaded bim model
@@ -26,13 +27,16 @@ function Onchain100() {
     const test = async () => {
         try {
 
+            //conenct to web3
+            const web3_temp = new Web3(Web3.givenProvider || "http://localhost:8545")
+            setWeb3(web3_temp)
+
             //get the user
-            const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-            const account = await web3.currentProvider.selectedAddress;
+            const account = await web3_temp.currentProvider.selectedAddress;
             setUser(account)
 
             //connect to smart contract managing 100% on-chain 
-            const smartCon = new web3.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
+            const smartCon = new web3_temp.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
             setOnchainSmartContract(smartCon)
 
             //get number of personal bim models stored on ethereum
@@ -187,7 +191,6 @@ function Onchain100() {
                 meta,
                 geom
             ).send({from:user}).on('transactionHash', (hash) => {
-                
                 //compute performance time
                 end = new Date();
                 var performance_time = end.getTime() - start.getTime()
@@ -248,7 +251,7 @@ function Onchain100() {
 
                     //get size of the downloaded file in bytes
                     var file_size  = Buffer.byteLength(JSON.stringify(model))
-                    console.log("Onchain100 downloaded file size:", file_size)
+                    console.log("Onchain100 downloaded file size in bytes:", file_size)
 
                     /*
                     //add measurement data to googlesheets
@@ -282,7 +285,8 @@ function Onchain100() {
 
     return (
     <div>
-        <p>In the upcoming one can test the possibility to store entire BIM models on Ethereum.</p>
+        <p>Dear user: {user},</p>
+        <p>In the upcoming, you can test the possibility to store entire BIM models on Ethereum.</p>
         <h4>Upload your BIM model to Ethereum</h4>
 
         {/*<label htmlFor='input-meta'>insert meta data: </label>

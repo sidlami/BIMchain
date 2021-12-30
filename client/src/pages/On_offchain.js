@@ -215,6 +215,7 @@ function On_offchain() {
 
   return (
     <div>
+        <p>Dear user: {user},</p>
         <p>
             This page tests the possibility to store BIM models offchain in a CDE (or here: an OSS bucket of an autodesk froge app) and the URN of these models.
         </p>

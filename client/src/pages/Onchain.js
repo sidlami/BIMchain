@@ -12,28 +12,31 @@ const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' 
 function Onchain() {
 
   //state variables
+  const [web3, setWeb3] = useState(null)
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
   const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants tu upload
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored in IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
-  const [selectedURN, setSelectedURN] = useState("") //holdes the CID of the personal BIM model which was selected by the user for perfoming the onchain computation or was selected for a download
+  const [selectedKey, setSelectedKey] = useState("") //holdes the key of the personal BIM model stored in IPFS and selected by the user for perfoming the onchain computation or was selected fordownload
 
   //on mount
   useEffect(()=>{
     const test = async () => {
       try {
 
-        //get the user
-        const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-        const account = await web3.currentProvider.selectedAddress;
+        //conenct to web3
+        const web3_temp = new Web3(Web3.givenProvider || "http://localhost:8545")
+        setWeb3(web3_temp)
+
+        //get user's wallet adress
+        const account = await web3_temp.currentProvider.selectedAddress;
         setUser(account)
 
         //connect to smart contract managing the IPFS storage method
-        const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
+        const smartCon = new web3_temp.eth.Contract(ABI_IPFS, ADRESS_IPFS)
         setOnchainSmartContract(smartCon)
 
-        //get all bim models stored in IPFS/filecoin
-        //https://web3.storage/
+        //get all bim models stored in IPFS
         const models = await smartCon.methods.getIPFSModels().call()
         setPersonalBIMmodels(models)
     
@@ -170,26 +173,37 @@ function Onchain() {
   //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
   const upload = async () => {
     try {
-
       var end, start;
       start = new Date();
-
-      // Adding file inside state variable 'buffer' to IPFS using the IPFS connection from above
-      const decentralFile = await ipfs.add(buffer)
+      const decentralFile = await ipfs.add(buffer) // Adding file inside state variable 'buffer' to IPFS using the IPFS connection from above
+      end = new Date();
 
       //store the key (aka cid) to the files in IPFS on the ethereum blockchain
       onchainSmartContract.methods.uploadFile(
         decentralFile.path
-      ).send({from:user}).on('transactionHash', (hash) => {
+      ).send({from:user}).on('transactionHash', async (hash) => {
 
-        //compute performance time
-        end = new Date();
+        //compute performance time of uploading to IPFS (measuring how long write on ethereum takes makes no sense as 1. higher payment = faster transaction and 2. user needs to confirm paymane, thus performance time would be depending on user's responsiveness)
         let performance_time = end.getTime() - start.getTime()
+        console.log('Onchain_ipfs upload performance time in ms:', performance_time)
+
+        //get size of the downloaded file in bytes
+        var file_size  = decentralFile.size
+        console.log("Onchain_ipfs upload file size in bytes:", file_size)
 
         //get transaction's used gas amount
-        var gas = 0 
+        //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
+        var gas = null
+        try {
+          const receipt = await web3.eth.getTransactionReceipt(hash)
+          var gas = receipt.gasUsed
+          console.log("Onchain_ipfs upload used gas amount:", gas)
+        } catch (error) {
+          console.log(error)
+        }
 
         /*
+        //add measurement data to googlesheets
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
           { 
@@ -197,11 +211,12 @@ function Onchain() {
             "method" : "onchain_ipfs",
             "operation"	: "upload",
             "file_key" : decentralFile.path,
-            "file_size"	: decentralFile.size, //bytes
+            "file_size"	: file_size, //bytes
             "gas"	: gas,
             "time" : performance_time //in ms
           }  
         )*/
+        alert("view console to check measurement data of ipfs upload")
         window.location.reload()
       }).on('error', (e) =>{
         console.log(e)
@@ -212,11 +227,11 @@ function Onchain() {
   }
 
   //function downloads bim model from IPFS and loads it into frontend
-  const download = async (ipfs_key) => {
+  const download = async () => {
     try {
       var end, start;
       start = new Date();
-      const file = await axios.get("https://ipfs.infura.io/ipfs/" + ipfs_key)
+      const file = await axios.get("https://ipfs.infura.io/ipfs/" + selectedKey)
       end = new Date();
 
       //check if bim model is how it should be
@@ -233,7 +248,7 @@ function Onchain() {
 
         //get size of the downloaded file in bytes
         var file_size  = Buffer.byteLength(JSON.stringify(file.data))
-        console.log("Onchain_ipfs download file size:", file_size)
+        console.log("Onchain_ipfs download file size in bytes:", file_size)
 
         /*
         //add measurement data to google spreadsheets
@@ -257,9 +272,9 @@ function Onchain() {
     }
   }
 
-  const compute = async (ipfs_key) =>{
+  const compute = async () =>{
     try {
-      const file = await axios.get("https://ipfs.infura.io/ipfs/" + ipfs_key)
+      const file = await axios.get("https://ipfs.infura.io/ipfs/" + selectedKey)
 
       if(file.headers["content-type"] === 'application/json'){
         const meta = file.data.meta_data
@@ -276,6 +291,7 @@ function Onchain() {
 
   return (
     <div>
+      <p>Dear user: {user},</p>
       <p>
         This page tests the possibility to store BIM models in the Inter Planetary File System (IPFS). 
         It is common practice to use filecoin as an additonal layer on IPFS for an incentive to store files decentrally.
@@ -290,33 +306,23 @@ function Onchain() {
       {personalBIMmodels.length === 0 ?
         <p>You currently do not possess any BIM models in IPFS on your account: '{user}' according to the Ethereum Blockchain!</p>
         :
-        <table style={{ width: '1000px', maxHeight: '450px'}}>
-          <thead style={{ 'fontSize': '15px' }}>
-            <tr>
-              <th scope="col" style={{ width: '200px'}}>ipfs key</th>
-              <th scope="col" style={{ width: '120px'}}>action</th>
-            </tr>
-          </thead>
-          {personalBIMmodels.map((ipfs_key, key) => {
-            return(
-              <thead style={{ 'fontSize': '12px' }} key={key}>
-                <tr>
-                  <td>{ipfs_key}</td>
-                  <td>
-                    <button type="button" onClick={()=>compute(ipfs_key)} >Compute on-chain</button>
-                    <button type="button" onClick={()=>download(ipfs_key)} >Download</button>
-                    {/*<a
-                      href={}
-                      rel="noopener noreferrer"
-                      target="_blank">
-                      {file.fileHash.substring(0,10)}...
-                    </a>*/}
-                  </td>
-                </tr>
-              </thead>
-            )
-          })}
-        </table>
+        <div>
+            <label htmlFor="select-model">Select your personal BIM model on Ethereum: </label>
+            <select name="select-model" value={selectedKey} onChange={(e)=>setSelectedKey(e.target.value)}>
+                <option value="" disabled hidden>Choose here</option>
+                {
+                personalBIMmodels.map((item, key) =>{
+                    return(
+                    <option key ={key} value={item}>
+                        {item}
+                    </option>
+                    )
+                }) 
+                }
+            </select>
+            <button type="button" onClick={compute}>Compute on chain</button>
+            <button type="button" onClick={download}>Download</button>
+        </div>
         /*<div>
           <label htmlFor="select-model">Select one of your BIM models in IPFS: </label>
           <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
