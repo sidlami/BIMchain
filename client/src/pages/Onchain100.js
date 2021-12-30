@@ -13,7 +13,6 @@ const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' 
 function Onchain100() {
 
     //state variables
-    const [web3, setWeb3] = useState(null)
     const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
     const [meta, setMeta] = useState("") //holds the inputed meta data of the to be uploaded bim model
     const [geom, setGeom] = useState("") //holds the inputed geometry data of the to be uploaded bim model
@@ -28,15 +27,14 @@ function Onchain100() {
         try {
 
             //conenct to web3
-            const web3_temp = new Web3(Web3.givenProvider || "http://localhost:8545")
-            setWeb3(web3_temp)
+            const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
             //get the user
-            const account = await web3_temp.currentProvider.selectedAddress;
+            const account = await web3.currentProvider.selectedAddress;
             setUser(account)
 
             //connect to smart contract managing 100% on-chain 
-            const smartCon = new web3_temp.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
+            const smartCon = new web3.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
             setOnchainSmartContract(smartCon)
 
             //get number of personal bim models stored on ethereum
@@ -185,44 +183,49 @@ function Onchain100() {
     //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
     const upload = async () => {
         try {
-            var end, start;
-            start = new Date();
-            onchainSmartContract.methods.setOnchainModels(
-                meta,
-                geom
-            ).send({from:user}).on('transactionHash', (hash) => {
-                //compute performance time
-                end = new Date();
-                var performance_time = end.getTime() - start.getTime()
-                console.log('onchain100 upload operation took ' + performance_time + ' msec')
+            const receipt = await onchainSmartContract.methods.setOnchainModels(meta, geom).send({from:user})
 
+            if(receipt){
+
+                //get file size 
+                /* old computation of file size
                 //get size of uploaded file in bytes
                 const json_model = {
                     "meta" : meta,
                     "geom" : geom
                 }
-                var file_size  = Buffer.byteLength(JSON.stringify(json_model)) //better?? var file_size = Buffer.byteLength(JSON.stringify(meta)) + Buffer.byteLength(JSON.stringify(geom))
-                console.log("onchain100 uploaded file size:", file_size)
+                var file_size  = Buffer.byteLength(JSON.stringify(json_model))
+                */
+                var file_size = Buffer.byteLength(JSON.stringify(meta)) + Buffer.byteLength(JSON.stringify(geom))
 
-
-                /*
-                //add data to googlesheets
-                await axios.post(
-                'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-                {
+                //get transaction's used gas amount
+                //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
+                var gas = receipt.gasUsed
+                
+                //summary measurement data
+                const measurement_data = {
+                    "timestamp" : (new Date()).toString(),
                     "method" : "onchain100",
                     "operation"	: "upload",
-                    "file_key" : user + "-" + key,
+                    "file_key" : user+"-"+personalBIMmodels.length,
                     "file_size"	: file_size, //in bytes
-                    "gas"	: "0",
-                    "time" : performance_time //in ms
-                } 
+                    "gas"	: gas,
+                    "time" : "null" //in ms
+                }
+                
+                console.log("measurement result:", measurement_data)
+
+                //add measurement data to googlesheets
+                /*
+                await axios.post(
+                    'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+                    measurement_data
                 )*/
+
+                alert("view console to check measurement data of upload to ethereum")
+
                 window.location.reload()
-            }).on('error', (e) =>{
-                console.log(e)
-                window.alert('Error')
-            })
+            }
         } catch (error) {
             console.log(error)
         }
@@ -247,27 +250,29 @@ function Onchain100() {
 
                     //compute performance time
                     var performance_time = end.getTime() - start.getTime()
-                    console.log('Onchain100 download performance time in ms:', performance_time)
 
                     //get size of the downloaded file in bytes
                     var file_size  = Buffer.byteLength(JSON.stringify(model))
-                    console.log("Onchain100 downloaded file size in bytes:", file_size)
 
-                    /*
-                    //add measurement data to googlesheets
-                    await axios.post(
-                    'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-                    {   
-                        "timestamp" : end, 
+                    //summary measurement data to googlesheets
+                    const measurement_data = {
+                        "timestamp" : end.toString(), 
                         "method" : "onchain100",
                         "operation"	: "download",
-                        "file_key" : selectedKey,
+                        "file_key" : user+"-"+selectedKey,
                         "file_size"	: file_size, //in bytes
-                        "gas"	: "0",
+                        "gas"	: 0,
                         "time" : performance_time //in ms
-                    }  
-                    )
-                    */  
+                    }
+                    
+                    console.log("measurement result:", measurement_data)
+  
+                    //add measurement data to googlesheets
+                    /*
+                    await axios.post(
+                        'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+                        measurement_data  
+                    )*/
                 }else{
                     console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
                 }

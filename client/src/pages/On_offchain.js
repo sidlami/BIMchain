@@ -16,25 +16,24 @@ function On_offchain() {
   //on mount
   useEffect(()=>{
     async function test(){
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const network = await web3.eth.net.getNetworkType()
-      const accounts = await web3.eth.getAccounts()
-      setUser(accounts[0])
-      console.log("network:", network)
-      console.log("account:", accounts[0])
-
-      //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      setOnchainSmartContract(smartCon)
-      console.log("SmartContract", smartCon)
-
-      //test connection to smart contract
-      const issuerContract = await smartCon.methods.owner().call()
-      console.log("issuer of smart contract: ", issuerContract)
-
-      //load in the URN of all user's personal bim models
       try{
+        const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
+        const network = await web3.eth.net.getNetworkType()
+        const accounts = await web3.eth.getAccounts()
+        setUser(accounts[0])
+        console.log("network:", network)
+        console.log("account:", accounts[0])
 
+        //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
+        const smartCon = new web3.eth.Contract(ABI, ADRESS)
+        setOnchainSmartContract(smartCon)
+        console.log("SmartContract", smartCon)
+
+        //test connection to smart contract
+        const issuerContract = await smartCon.methods.owner().call()
+        console.log("issuer of smart contract: ", issuerContract)
+
+        //load in the URN of all user's personal bim models
         //get URN of all personal bim models stored on blockchain
         // --> THIS IS DOWNLOADING ALL OF THE ONCHAIN PARTs OF THE OFFCHAIN BIM MODELS AT THE SAME TIME
         // --> this is the download in an on- and offchain architecture, meaning there is no transaction fee for performing a call
@@ -43,18 +42,6 @@ function On_offchain() {
         //store personal bim models in frontend
         setPersonalBIMmodels(personalOffchainmodels)
 
-        //print personal bim models to console
-        if(personalOffchainmodels?.length !== 0){
-
-          for(var i=0; i < personalOffchainmodels.length; i++){
-            if(i === 0 ){
-              console.log("personal offchain BIM models:")
-            }
-            console.log("offchain bim model number "+i+": "+personalOffchainmodels[i])
-          }
-        }else{
-          console.log("You currently do not possess any offchain bim models!")
-        }
       }catch(e){
         console.log(e)
       }
@@ -90,19 +77,21 @@ function On_offchain() {
 
   //function uploads URN string to blockchain (note: costs occure)
   const upload = async () => {
-    console.log(uploadURN)
     try{
       var end, start;
       start = new Date();
-      await onchainSmartContract.methods.setOffchainModels(uploadURN).send({from : user})
+      const receipt = await onchainSmartContract.methods.setOffchainModels(uploadURN).send({from : user})
       end = new Date();
+      console.log(receipt)
 
-      /*if(file.headers["content-type"] === 'application/json'){
+      if(receipt){
 
-        console.log('Operation took ' + (end.getTime() - start.getTime()) + ' msec');
-        
-        let performance_time = end.getTime() - start.getTime()
+        //get transaction's used gas amount
+        //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
+        var gas = receipt.gasUsed
+        console.log("Onchain100 upload used gas amount:", gas)
 
+        /*
         //add data to googlesheets
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
@@ -112,13 +101,14 @@ function On_offchain() {
             "operation"	: "download",
             "file_key" : ipfs_key,
             "file_size"	: file_size, //in bytes
-            "gas"	: "0",
+            "gas"	: gas,
             "time" : performance_time //in ms
           }  
-        )  
+        ) 
+        */
       }else{
         console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
-      }*/
+      }
     }catch(e){
       console.log(e)
     }
@@ -228,9 +218,9 @@ function On_offchain() {
               <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
                   <option value="" disabled hidden>Choose here</option>
                   {
-                  personalBIMmodels.map(item =>{
+                  personalBIMmodels.map((item, key) =>{
                       return(
-                      <option key ={item} value={item}>
+                      <option key ={key} value={item}>
                           {item}
                       </option>
                       )

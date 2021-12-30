@@ -23,17 +23,15 @@ function Onchain() {
   useEffect(()=>{
     const test = async () => {
       try {
-
         //conenct to web3
-        const web3_temp = new Web3(Web3.givenProvider || "http://localhost:8545")
-        setWeb3(web3_temp)
+        const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
         //get user's wallet adress
-        const account = await web3_temp.currentProvider.selectedAddress;
+        const account = await web3.currentProvider.selectedAddress;
         setUser(account)
 
         //connect to smart contract managing the IPFS storage method
-        const smartCon = new web3_temp.eth.Contract(ABI_IPFS, ADRESS_IPFS)
+        const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
         setOnchainSmartContract(smartCon)
 
         //get all bim models stored in IPFS
@@ -179,48 +177,43 @@ function Onchain() {
       end = new Date();
 
       //store the key (aka cid) to the files in IPFS on the ethereum blockchain
-      onchainSmartContract.methods.uploadFile(
-        decentralFile.path
-      ).send({from:user}).on('transactionHash', async (hash) => {
+      const receipt = await onchainSmartContract.methods.uploadFile(decentralFile.path).send({from:user})
 
+      if(receipt & decentralFile){
         //compute performance time of uploading to IPFS (measuring how long write on ethereum takes makes no sense as 1. higher payment = faster transaction and 2. user needs to confirm paymane, thus performance time would be depending on user's responsiveness)
         let performance_time = end.getTime() - start.getTime()
-        console.log('Onchain_ipfs upload performance time in ms:', performance_time)
 
         //get size of the downloaded file in bytes
         var file_size  = decentralFile.size
-        console.log("Onchain_ipfs upload file size in bytes:", file_size)
 
         //get transaction's used gas amount
         //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
-        var gas = null
-        try {
-          const receipt = await web3.eth.getTransactionReceipt(hash)
-          var gas = receipt.gasUsed
-          console.log("Onchain_ipfs upload used gas amount:", gas)
-        } catch (error) {
-          console.log(error)
-        }
+        var gas = receipt.gasUsed
 
-        /*
+        //summary measurement data to googlesheets
+        const measurement_data = {
+          "timestamp" : end.toString(),
+          "method" : "onchain_ipfs",
+          "operation"	: "upload",
+          "file_key" : decentralFile.path,
+          "file_size"	: file_size, //bytes
+          "gas"	: gas,
+          "time" : "null" //in ms
+        }
+        
+        console.log("measurement result:", measurement_data)
+
         //add measurement data to googlesheets
+        /*
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          { 
-            "timestamp" : end,
-            "method" : "onchain_ipfs",
-            "operation"	: "upload",
-            "file_key" : decentralFile.path,
-            "file_size"	: file_size, //bytes
-            "gas"	: gas,
-            "time" : performance_time //in ms
-          }  
+          measurement_data  
         )*/
+
         alert("view console to check measurement data of ipfs upload")
+
         window.location.reload()
-      }).on('error', (e) =>{
-        console.log(e)
-      })
+      }
     } catch (error) {
       console.log(error)
     }
@@ -244,26 +237,30 @@ function Onchain() {
 
         //compute performance time
         var performance_time = end.getTime() - start.getTime()
-        console.log('Onchain_ipfs download performance time in ms:', performance_time)
 
         //get size of the downloaded file in bytes
         var file_size  = Buffer.byteLength(JSON.stringify(file.data))
-        console.log("Onchain_ipfs download file size in bytes:", file_size)
 
+        //summary measurement data to googlesheets
+        const measurement_data = {
+          "timestamp" : end.toString(),
+          "method" : "onchain_ipfs",
+          "operation"	: "download",
+          "file_key" : selectedKey,
+          "file_size"	: file_size, //bytes
+          "gas"	: 0,
+          "time" : performance_time //in ms
+        }
+        
+        console.log("measurement result:", measurement_data)
+
+        //add measurement data to googlesheets
         /*
-        //add measurement data to google spreadsheets
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          { 
-            "timestamp" : end,
-            "method" : "onchain_ipfs",
-            "operation"	: "download",
-            "file_key" : ipfs_key,
-            "file_size"	: file_size, //bytes
-            "gas"	: "0",
-            "time" : performance_time //in ms
-          }  
-        )*/  
+          measurement_data  
+        )*/
+
       }else{
         console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
       }
