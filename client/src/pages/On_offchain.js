@@ -78,36 +78,40 @@ function On_offchain() {
   //function uploads URN string to blockchain (note: costs occure)
   const upload = async () => {
     try{
-      var end, start;
-      start = new Date();
       const receipt = await onchainSmartContract.methods.setOffchainModels(uploadURN).send({from : user})
-      end = new Date();
-      console.log(receipt)
-
       if(receipt){
+
+        //get size of the downloaded file in bytes
+        var file_size = Buffer.byteLength(uploadURN)
 
         //get transaction's used gas amount
         //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
         var gas = receipt.gasUsed
         console.log("Onchain100 upload used gas amount:", gas)
 
+        //summary measurement data to googlesheets
+        const measurement_data = {
+          "timestamp" : (new Date()).toString(),
+          "method" : "on_off",
+          "operation"	: "upload",
+          "file_key" : uploadURN,
+          "file_size"	: file_size, //bytes
+          "gas"	: gas,
+          "time" : "null" //in ms
+        }
+        console.log("measurement result:", measurement_data)
+
+        //add measurement data to googlesheets
         /*
-        //add data to googlesheets
         await axios.post(
           'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          {
-            "timestamp" : end,
-            "method" : "onchain_ipfs",
-            "operation"	: "download",
-            "file_key" : ipfs_key,
-            "file_size"	: file_size, //in bytes
-            "gas"	: gas,
-            "time" : performance_time //in ms
-          }  
-        ) 
-        */
+          measurement_data  
+        )*/
+
+        alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
+        window.location.reload()
       }else{
-        console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+        console.log("ERROR: No receipt received from write on ethereum!")
       }
     }catch(e){
       console.log(e)

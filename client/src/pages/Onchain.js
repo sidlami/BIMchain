@@ -184,7 +184,8 @@ function Onchain() {
         let performance_time = end.getTime() - start.getTime()
 
         //get size of the downloaded file in bytes
-        var file_size  = decentralFile.size
+        var file_size = decentralFile.size
+        var size_stored_on_eth = Buffer.byteLength(decentralFile.path)
 
         //get transaction's used gas amount
         //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
@@ -196,9 +197,9 @@ function Onchain() {
           "method" : "onchain_ipfs",
           "operation"	: "upload",
           "file_key" : decentralFile.path,
-          "file_size"	: file_size, //bytes
+          "file_size"	: file_size+" (ipfs) + "+size_stored_on_eth+" (onchain)", //bytes
           "gas"	: gas,
-          "time" : "null" //in ms
+          "time" : performance_time //in ms and only the upload to ipfs
         }
         
         console.log("measurement result:", measurement_data)

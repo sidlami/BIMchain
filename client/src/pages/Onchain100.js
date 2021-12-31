@@ -208,8 +208,8 @@ function Onchain100() {
                     "method" : "onchain100",
                     "operation"	: "upload",
                     "file_key" : user+"-"+personalBIMmodels.length,
-                    "file_size"	: file_size, //in bytes
-                    "gas"	: gas,
+                    "file_size" : file_size, //in bytes
+                    "gas" : gas,
                     "time" : "null" //in ms
                 }
                 
@@ -223,7 +223,6 @@ function Onchain100() {
                 )*/
 
                 alert("view console to check measurement data of upload to ethereum")
-
                 window.location.reload()
             }
         } catch (error) {
@@ -274,7 +273,7 @@ function Onchain100() {
                         measurement_data  
                     )*/
                 }else{
-                    console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
+                    console.log("ERROR: No data received from ethereum!")
                 }
             } catch (error) {
                 console.log(error)
