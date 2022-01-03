@@ -30,8 +30,8 @@ function Onchain100() {
             const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
             //get the user
-            const account = await web3.currentProvider.selectedAddress;
-            setUser(account)
+            const accounts = await web3.eth.getAccounts()
+            setUser(accounts[0])
 
             //connect to smart contract managing 100% on-chain 
             const smartCon = new web3.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
@@ -40,6 +40,7 @@ function Onchain100() {
             //get number of personal bim models stored on ethereum
             const numberModels = await smartCon.methods.getOnchainModelKeys().call()
             console.log("number of personal models on ethereum", numberModels)
+            
             const models = []
             for(var i=0; i<numberModels; i++){
                 models.push(i)

@@ -12,9 +12,8 @@ const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' 
 function Onchain() {
 
   //state variables
-  const [web3, setWeb3] = useState(null)
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
-  const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants tu upload
+  const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants to upload
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored in IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedKey, setSelectedKey] = useState("") //holdes the key of the personal BIM model stored in IPFS and selected by the user for perfoming the onchain computation or was selected fordownload
@@ -27,8 +26,8 @@ function Onchain() {
         const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
         //get user's wallet adress
-        const account = await web3.currentProvider.selectedAddress;
-        setUser(account)
+        const accounts = await web3.eth.getAccounts()
+        setUser(accounts[0])
 
         //connect to smart contract managing the IPFS storage method
         const smartCon = new web3.eth.Contract(ABI_IPFS, ADRESS_IPFS)
@@ -179,7 +178,7 @@ function Onchain() {
       //store the key (aka cid) to the files in IPFS on the ethereum blockchain
       const receipt = await onchainSmartContract.methods.uploadFile(decentralFile.path).send({from:user})
 
-      if(receipt & decentralFile){
+      if(receipt){
         //compute performance time of uploading to IPFS (measuring how long write on ethereum takes makes no sense as 1. higher payment = faster transaction and 2. user needs to confirm paymane, thus performance time would be depending on user's responsiveness)
         let performance_time = end.getTime() - start.getTime()
 
@@ -298,7 +297,7 @@ function Onchain() {
       <h4>Upload your BIM model to IPFS:</h4>
       <label htmlFor='input-file'>Select and upload bim model: </label>
       <input name='input-file' type="file" onChange={captureFile}/>
-      <button type="button"onClick={upload}>Upload</button>
+      <button type="button" onClick={upload}>Upload</button>
         
       <h4>Your BIM models in IPFS:</h4>
       {personalBIMmodels.length === 0 ?
