@@ -184,7 +184,7 @@ function Onchain100() {
     //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
     const upload = async () => {
         try {
-            const receipt = await onchainSmartContract.methods.setOnchainModels(meta, geom).send({from:user})
+            const receipt = await onchainSmartContract.methods.setOnchainModels(meta, geom).send({from:user, gasLimit: 8000000})
 
             if(receipt){
 
