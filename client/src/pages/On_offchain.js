@@ -9,7 +9,7 @@ function On_offchain() {
   //state variables
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored URN of all user's personal offchain bim models in the frontend
-  const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants to upload
+  const [toBeUploadedModel, setToBeUploadedModel] = useState(null) //holds the path to the file which the user wants to upload
   const [file_name, setFile_name] =  useState("") //holds the name for the file which the user wants to upload to OSS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedURN, setSelectedURN] = useState("") //holdes the URN of the personal BIM model which was selected by the user for perfoming the onchain computation
@@ -83,25 +83,25 @@ function On_offchain() {
     event.preventDefault()
     const file = event.target.files[0]
     console.log("caputred file:", file)
-    //setBuffer(file)
-    const reader = new window.FileReader()
-    reader.readAsArrayBuffer(file)
+    setToBeUploadedModel(file)
+    /*const reader = new window.FileReader()
+    reader.readAsBinaryString(file)
     reader.onloadend = () => {
-      setBuffer(Buffer(reader.result))
-    }
+      setToBeUploadedModel(reader.result)
+    }*/
   }
   
   const upload = async () => {
     try {
-      console.log("to be uploaded buffer", buffer)
+      console.log("to be uploaded model:", toBeUploadedModel)
 
-      //1. authenticate
+      //authenticate to autodesk's forge app
       const token = await authenticateToForge()
 
-      //2. upload file to OSS
+      //upload file to OSS bucket of model derivative api
       const upload = await axios.put(
         `https://developer.api.autodesk.com/oss/v2/buckets/test_bim_models/objects/${file_name}.ifc`,
-        buffer,
+        toBeUploadedModel,
         {
           headers : {
             Authorization : `Bearer ${token}`
@@ -110,48 +110,122 @@ function On_offchain() {
       )
       console.log("response from upload to OSS", upload)
 
-      //3. encode objectId base 64
+      //encode objectId of model in OSS bucket using base 64 
       const ossId = btoa(upload.data.objectId)
       console.log("object id:", upload.data.objectId, "encoded object id:", ossId)
 
-      //4. write ossId on etheruem blockchain
-      const receipt = await onchainSmartContract.methods.setOffchainModels(ossId).send({from : user})
-      
-      //5. check if write on etheruem was successfull and document measurement data in google sheets
-      if(receipt){
-
-        //get size of the downloaded file in bytes
-        var file_size = Buffer.byteLength(ossId)
-
-        //get transaction's used gas amount
-        //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
-        var gas = receipt.gasUsed
-
-        //summary measurement data to googlesheets
-        const measurement_data = {
-          "timestamp" : (new Date()).toString(),
-          "method" : "on_off",
-          "operation"	: "upload",
-          "file_key" : ossId,
-          "file_size"	: upload.data.size+" (OSS bucket) + "+file_size+" (on-chain)", //bytes
-          "gas"	: gas,
-          "time" : "null" //in ms
+      //translate model inside OSS bucket to SVF
+      const translation = await axios.post(
+        'https://developer.api.autodesk.com/modelderivative/v2/designdata/job',
+        JSON.stringify({
+          input: {
+            urn: ossId,
+          },
+          output: {
+              destination: {
+                region: "us"
+              },
+              formats: [
+                  {
+                      type : "svf",
+                      views: [
+                          "2d",
+                          "3d"
+                      ],
+                      advanced: {
+                        generateMasterViews: true
+                      }
+                  }
+              ]
+          }
+        }),
+        {
+          headers : {
+            Authorization : `Bearer ${token}`,
+            //'x-ads-force' : true,
+            "Content-type": "application/json",
+          }
         }
-        console.log("measurement result:", measurement_data)
+      )
+      console.log("translation job:", translation)
 
-        //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
+      //check if translation of model to svf was successful
+      var successful_translation = false
+      if(translation.data.urn === ossId){
+        var translation_job =  await axios.get(
+          `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
+          {
+            headers : {
+              Authorization : `Bearer ${token}`
+            }
+          }
+        )
 
-        alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
-        window.location.reload()
+        while(translation_job.data.status === 'pending' || translation_job.data.status === 'inprogress'){
+          translation_job =  await axios.get(
+            `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
+            {
+              headers : {
+                Authorization : `Bearer ${token}`
+              }
+            }
+          )
+          console.log("translation progress:", translation_job.data.progress)
+        }
+
+        if(translation_job.data.status === 'failed'){
+          console.log("Error: translation of model into sfv format failed.", "response:", translation_job)
+        }else{
+          if(translation_job.data.status === 'timeout'){
+            console.log("Timeout: translation of model into sfv format timed out.", "response:", translation_job)
+          }else{
+            successful_translation = true
+            console.log("translation of model into sfv format was successful!", successful_translation)
+          }
+        }
       }else{
-        console.log("ERROR: No receipt received from write on ethereum!")
+        console.log("Error: base Encoded objectId does not match the URN of translation job!")
       }
+      
+      if(successful_translation){
+        //write ossId on etheruem blockchain
+        const receipt = await onchainSmartContract.methods.setOffchainModels(ossId).send({from : user})
+        
+        //check if write on etheruem was successfull and document measurement data in google sheets
+        if(receipt){
 
+          //get size of the downloaded file in bytes
+          var file_size = Buffer.byteLength(ossId)
+
+          //get transaction's used gas amount
+          //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
+          var gas = receipt.gasUsed
+
+          //summary measurement data to googlesheets
+          const measurement_data = {
+            "timestamp" : (new Date()).toString(),
+            "method" : "on_off",
+            "operation"	: "upload",
+            "file_key" : ossId,
+            "file_size"	: upload.data.size+" (OSS bucket) + "+file_size+" (on-chain)", //bytes
+            "gas"	: gas,
+            "time" : "null" //in ms
+          }
+          console.log("measurement result:", measurement_data)
+
+          //add measurement data to googlesheets
+          /*
+          await axios.post(
+            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+            measurement_data  
+          )*/
+
+          alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
+          window.location.reload()
+        }else{
+          console.log("ERROR: No receipt received from write on ethereum!")
+        }
+      }
     } catch (error) {
       console.log(error)
     }
@@ -322,7 +396,7 @@ function On_offchain() {
         )*/
 
         //create json file out of meta data and geometry data (aka properties)
-        const newJsonBimModel = {
+        /*const newJsonBimModel = {
           "meta_data" : JSON.stringify(metadata),
           "geom_data" : JSON.stringify(properties)
         }
@@ -331,7 +405,7 @@ function On_offchain() {
         await axios.post("http://localhost:3001/api/file", {
           "file_name" : selectedURN,
           "newJsonBimModel" : newJsonBimModel
-        })
+        })*/
 
       }else{
         console.log("ERROR: The download from OSS bucket via model derivative API failed!")
@@ -350,7 +424,7 @@ function On_offchain() {
         <h4>Upload your BIM model to OSS bucket</h4>
         <label htmlFor='input-file'>Select and upload bim model: </label>
         <input name='input-file' type="file" onChange={captureFile}/>
-        {buffer ? 
+        {toBeUploadedModel ? 
           <div>
             <label htmlFor='input-file'>Name bim model for OSS bucket: </label>
             <input type="text" name="urn" size="10" value={file_name} onChange={(e)=>setFile_name(e.target.value)}/>.ifc
