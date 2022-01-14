@@ -16,6 +16,7 @@ function Onchain() {
   const [buffer, setBuffer] = useState(null) //holds the path to the file which the user wants to upload
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored reference keys for personal bim models stored in IPFS
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
+  const [fileName, setFileName] = useState() //holds the name of the to be uploaded file
   const [selectedKey, setSelectedKey] = useState("") //holdes the key of the personal BIM model stored in IPFS and selected by the user for perfoming the onchain computation or was selected fordownload
 
   //on mount
@@ -36,6 +37,10 @@ function Onchain() {
         //get all bim models stored in IPFS
         const models = await smartCon.methods.getIPFSModels().call()
         setPersonalBIMmodels(models)
+
+        //estimate gas cost of calling all IPFS keys stored on ethereum
+        const estimatedGas = await smartCon.methods.getIPFSModels().estimateGas()
+        console.log("Interpolated estimated gas needed for calling one IPFS key stored on ethereum:",estimatedGas/models.length)
     
         //authenticate to autodesk forge
         /*const token = await authenticateToForge()
@@ -159,6 +164,8 @@ function Onchain() {
   const captureFile = event => {
     event.preventDefault()
     const file = event.target.files[0]
+    console.log(file)
+    setFileName(file.name)
     const reader = new window.FileReader()
     reader.readAsArrayBuffer(file)
     reader.onloadend = () => {
@@ -196,6 +203,7 @@ function Onchain() {
           "method" : "onchain_ipfs",
           "operation"	: "upload",
           "file_key" : decentralFile.path,
+          "file_name" : fileName,
           "file_size_ipfs" : file_size, //in bytes
           "file_size_oss" : 0, //in bytes
           "file_size_ethereum" : size_stored_on_eth, //in bytes
@@ -212,9 +220,8 @@ function Onchain() {
           measurement_data  
         )*/
 
-        alert("view console to check measurement data of ipfs upload")
-
-        window.location.reload()
+        //alert("view console to check measurement data of ipfs upload")
+        //window.location.reload()
       }
     } catch (error) {
       console.log(error)
@@ -238,6 +245,8 @@ function Onchain() {
 
         //get size of the downloaded file in bytes
         var file_size  = Buffer.byteLength(JSON.stringify(file.data))
+        //compute size of data on ethereum
+        var file_size_eth = Buffer.byteLength(JSON.stringify(selectedKey))
 
         //summary measurement data to googlesheets
         const measurement_data = {
@@ -245,9 +254,10 @@ function Onchain() {
           "method" : "onchain_ipfs",
           "operation"	: "download",
           "file_key" : selectedKey,
+          "file_name" : "",
           "file_size_ipfs" : file_size, //in bytes
           "file_size_oss" : 0, //in bytes
-          "file_size_ethereum" : 0, //in bytes
+          "file_size_ethereum" : file_size_eth, //in bytes
           "gas"	: 0,
           "time" : performance_time //in ms
         }

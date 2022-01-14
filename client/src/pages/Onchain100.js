@@ -243,6 +243,7 @@ function Onchain100() {
                         "method" : "onchain100",
                         "operation"	: "upload",
                         "file_key" : toBeUploadedModel,
+                        "file_name" : metadata.data.data.metadata[0].name,
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes
@@ -259,8 +260,8 @@ function Onchain100() {
                         measurement_data
                     )*/
     
-                    alert("view console to check measurement data of upload to ethereum")
-                    window.location.reload()
+                    //alert("view console to check measurement data of upload to ethereum")
+                    //window.location.reload()
                 }
             }else{
                 console.log("ERROR: The download from OSS bucket via model derivative API failed!")
@@ -299,6 +300,7 @@ function Onchain100() {
                     "method" : "onchain100",
                     "operation"	: "upload",
                     "file_key" : user+"-"+personalBIMmodels.length,
+                    "file_name" : "",
                     "file_size_ipfs" : 0, //in bytes
                     "file_size_oss" : 0, //in bytes
                     "file_size_ethereum" : file_size, //in bytes
@@ -364,6 +366,7 @@ function Onchain100() {
                         "method" : "onchain100",
                         "operation"	: "download",
                         "file_key" : selectedKey,
+                        "file_name" : "",
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes

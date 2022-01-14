@@ -10,7 +10,7 @@ function On_offchain() {
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
   const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds the onchain stored URN of all user's personal offchain bim models in the frontend
   const [toBeUploadedModel, setToBeUploadedModel] = useState(null) //holds the path to the file which the user wants to upload
-  const [file_name, setFile_name] =  useState("") //holds the name for the file which the user wants to upload to OSS
+  const [fileName, setFileName] = useState() //holds the name of the to be uploaded file
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedURN, setSelectedURN] = useState("") //holdes the URN of the personal BIM model which was selected by the user for perfoming the onchain computation
   const [uploadURN, setUploadURN] = useState("") //holdes the URN of the personal BIM model which was inputed by the user and should be uploaded to blockchain. this URN is created in the process of uploading the bim model to the OSS of the model derivative api
@@ -38,9 +38,14 @@ function On_offchain() {
         const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
         end = new Date();
 
-        //compute performance time of downloading OffchainModels
-          //var performance_time = end.getTime() - start.getTime()
-          //console.log("measured performance time for download of all offchain model's ID (in ms):", performance_time)
+        //estimate gas cost of calling all OSS keys stored on ethereum
+        const estimatedGas = await smartCon.methods.getOffchainModels().estimateGas()
+        var estimated_gas_per_key = estimatedGas/personalOffchainmodels.length
+        console.log("Interpolated estimated gas needed for calling one OSS key stored on ethereum:", estimated_gas_per_key )
+
+        //compute performance time of calling aka "downloading" key of all OffchainModels
+        var performance_time_per_key = (end.getTime() - start.getTime())/personalOffchainmodels.length
+        console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
 
         //store personal bim models in frontend
         setPersonalBIMmodels(personalOffchainmodels)
@@ -82,7 +87,7 @@ function On_offchain() {
   const captureFile = event => {
     event.preventDefault()
     const file = event.target.files[0]
-    console.log("caputred file:", file)
+    setFileName(file.name)
     setToBeUploadedModel(file)
     /*const reader = new window.FileReader()
     reader.readAsBinaryString(file)
@@ -99,8 +104,10 @@ function On_offchain() {
       const token = await authenticateToForge()
 
       //upload file to OSS bucket of model derivative api
+      var end, start;
+      start = new Date();
       const upload = await axios.put(
-        `https://developer.api.autodesk.com/oss/v2/buckets/test_bim_models/objects/${file_name}.ifc`,
+        `https://developer.api.autodesk.com/oss/v2/buckets/test_bim_models/objects/${fileName}.ifc`,
         toBeUploadedModel,
         {
           headers : {
@@ -108,6 +115,7 @@ function On_offchain() {
           }
         }
       )
+      end = new Date();
       console.log("response from upload to OSS", upload)
 
       //encode objectId of model in OSS bucket using base 64 
@@ -151,8 +159,18 @@ function On_offchain() {
 
       //check if translation of model to svf was successful
       var successful_translation = false
-      if(translation.data.urn === ossId){
-        var translation_job =  await axios.get(
+      
+      var translation_job =  await axios.get(
+        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
+        {
+          headers : {
+            Authorization : `Bearer ${token}`
+          }
+        }
+      )
+
+      while(translation_job.data.status === 'pending' || translation_job.data.status === 'inprogress'){
+        translation_job =  await axios.get(
           `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
           {
             headers : {
@@ -160,31 +178,18 @@ function On_offchain() {
             }
           }
         )
+        console.log("translation progress:", translation_job.data.progress)
+      }
 
-        while(translation_job.data.status === 'pending' || translation_job.data.status === 'inprogress'){
-          translation_job =  await axios.get(
-            `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
-            {
-              headers : {
-                Authorization : `Bearer ${token}`
-              }
-            }
-          )
-          console.log("translation progress:", translation_job.data.progress)
-        }
-
-        if(translation_job.data.status === 'failed'){
-          console.log("Error: translation of model into sfv format failed.", "response:", translation_job)
-        }else{
-          if(translation_job.data.status === 'timeout'){
-            console.log("Timeout: translation of model into sfv format timed out.", "response:", translation_job)
-          }else{
-            successful_translation = true
-            console.log("translation of model into sfv format was successful!", successful_translation)
-          }
-        }
+      if(translation_job.data.status === 'failed'){
+        console.log("Error: translation of model into sfv format failed.", "response:", translation_job)
       }else{
-        console.log("Error: base Encoded objectId does not match the URN of translation job!")
+        if(translation_job.data.status === 'timeout'){
+          console.log("Timeout: translation of model into sfv format timed out.", "response:", translation_job)
+        }else{
+          successful_translation = true
+          console.log("translation of model into sfv format was successful!", successful_translation)
+        }
       }
       
       if(successful_translation){
@@ -193,6 +198,9 @@ function On_offchain() {
         
         //check if write on etheruem was successfull and document measurement data in google sheets
         if(receipt){
+
+          //compute performance time
+          var performance_time = end.getTime() - start.getTime()
 
           //get size data on ethereum
           var file_size_eth = Buffer.byteLength(ossId)
@@ -207,11 +215,12 @@ function On_offchain() {
             "method" : "on_off",
             "operation"	: "upload",
             "file_key" : ossId,
+            "file_name" : fileName,
             "file_size_ipfs" : 0, //in bytes
             "file_size_oss" : upload.data.size, //in bytes
             "file_size_ethereum" : file_size_eth, //in bytes
             "gas"	: gas,
-            "time" : "null" //in ms
+            "time" : performance_time, //in ms
           }
           console.log("measurement result:", measurement_data)
 
@@ -222,8 +231,8 @@ function On_offchain() {
             measurement_data  
           )*/
 
-          alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
-          window.location.reload()
+          //alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
+          //window.location.reload()
         }else{
           console.log("ERROR: No receipt received from write on ethereum!")
         }
@@ -254,6 +263,8 @@ function On_offchain() {
           "operation"	: "upload",
           "file_key" : uploadURN,
           "file_size"	: file_size, //bytes
+          "file_size_ipfs" : 0,
+          
           "gas"	: gas,
           "time" : "null" //in ms
         }
@@ -266,8 +277,8 @@ function On_offchain() {
           measurement_data  
         )*/
 
-        alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
-        window.location.reload()
+        //alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
+        //window.location.reload()
       }else{
         console.log("ERROR: No receipt received from write on ethereum!")
       }
@@ -364,7 +375,7 @@ function On_offchain() {
       var end = new Date();
       
       //check if model is how it should be
-      if(metadata !== null & properties !== null){
+      if(metadata !== null & properties !== null & properties.data.data.collection !== null){
 
         //print out model
         console.log("metadata:", metadata)
@@ -386,6 +397,7 @@ function On_offchain() {
           "method" : "on_off",
           "operation"	: "download",
           "file_key" : selectedURN,
+          "file_name" : metadata.data.data.metadata[0].name,
           "file_size_ipfs" : 0, //in bytes
           "file_size_oss" : file_size, //in bytes
           "file_size_ethereum" : file_size_eth, //in bytes
@@ -415,7 +427,7 @@ function On_offchain() {
         })*/
 
       }else{
-        console.log("ERROR: The download from OSS bucket via model derivative API failed!")
+        console.log("ERROR: The download from OSS bucket via model derivative API failed!","If you just uploaded the BIM model to OSS, wait a little bit and download it later again!")
       }
     } catch (error) {
       console.log(error)
@@ -431,14 +443,7 @@ function On_offchain() {
         <h4>Upload your BIM model to OSS bucket</h4>
         <label htmlFor='input-file'>Select and upload bim model: </label>
         <input name='input-file' type="file" onChange={captureFile}/>
-        {toBeUploadedModel ? 
-          <div>
-            <label htmlFor='input-file'>Name bim model for OSS bucket: </label>
-            <input type="text" name="urn" size="10" value={file_name} onChange={(e)=>setFile_name(e.target.value)}/>.ifc
-          </div>
-          : ""
-        }
-        {file_name ? <button type="button" onClick={upload}>Upload</button> : ""}
+        <button type="button" onClick={upload}>Upload</button>
         <h4>Your offchain BIM models:</h4>
         {personalBIMmodels.length === 0 ?
             <p>You currently do not possess any offchain BIM models on your account: '{user}' according to the Ethereum Blockchain!</p>
