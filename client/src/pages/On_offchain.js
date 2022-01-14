@@ -194,8 +194,8 @@ function On_offchain() {
         //check if write on etheruem was successfull and document measurement data in google sheets
         if(receipt){
 
-          //get size of the downloaded file in bytes
-          var file_size = Buffer.byteLength(ossId)
+          //get size data on ethereum
+          var file_size_eth = Buffer.byteLength(ossId)
 
           //get transaction's used gas amount
           //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
@@ -207,7 +207,9 @@ function On_offchain() {
             "method" : "on_off",
             "operation"	: "upload",
             "file_key" : ossId,
-            "file_size"	: upload.data.size+" (OSS bucket) + "+file_size+" (on-chain)", //bytes
+            "file_size_ipfs" : 0, //in bytes
+            "file_size_oss" : upload.data.size, //in bytes
+            "file_size_ethereum" : file_size_eth, //in bytes
             "gas"	: gas,
             "time" : "null" //in ms
           }
@@ -373,7 +375,10 @@ function On_offchain() {
         var performance_time = end.getTime() - start.getTime()
 
         //compute size of the downloaded file in bytes
-        var file_size  = Buffer.byteLength(JSON.stringify(metadata)) + Buffer.byteLength(JSON.stringify(properties))
+        var file_size  = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
+
+        //compute size of data on ethereum
+        var file_size_eth = Buffer.byteLength(JSON.stringify(selectedURN))
 
         //summary measurement data to googlesheets
         const measurement_data = {
@@ -381,7 +386,9 @@ function On_offchain() {
           "method" : "on_off",
           "operation"	: "download",
           "file_key" : selectedURN,
-          "file_size"	: file_size, //bytes
+          "file_size_ipfs" : 0, //in bytes
+          "file_size_oss" : file_size, //in bytes
+          "file_size_ethereum" : file_size_eth, //in bytes
           "gas"	: 0,
           "time" : performance_time //in ms
         }

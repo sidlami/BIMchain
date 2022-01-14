@@ -196,7 +196,9 @@ function Onchain() {
           "method" : "onchain_ipfs",
           "operation"	: "upload",
           "file_key" : decentralFile.path,
-          "file_size"	: file_size+" (ipfs) + "+size_stored_on_eth+" (onchain)", //bytes
+          "file_size_ipfs" : file_size, //in bytes
+          "file_size_oss" : 0, //in bytes
+          "file_size_ethereum" : size_stored_on_eth, //in bytes
           "gas"	: gas,
           "time" : performance_time //in ms and only the upload to ipfs
         }
@@ -227,6 +229,43 @@ function Onchain() {
       const file = await axios.get("https://ipfs.infura.io/ipfs/" + selectedKey)
       end = new Date();
 
+      if(file){
+        //print out model as string
+        console.log(file.data)
+
+        //compute performance time
+        var performance_time = end.getTime() - start.getTime()
+
+        //get size of the downloaded file in bytes
+        var file_size  = Buffer.byteLength(JSON.stringify(file.data))
+
+        //summary measurement data to googlesheets
+        const measurement_data = {
+          "timestamp" : end.toString(),
+          "method" : "onchain_ipfs",
+          "operation"	: "download",
+          "file_key" : selectedKey,
+          "file_size_ipfs" : file_size, //in bytes
+          "file_size_oss" : 0, //in bytes
+          "file_size_ethereum" : 0, //in bytes
+          "gas"	: 0,
+          "time" : performance_time //in ms
+        }
+        
+        console.log("measurement result:", measurement_data)
+
+        //add measurement data to googlesheets
+        /*
+        await axios.post(
+          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+          measurement_data  
+        )*/
+
+      }else{
+        console.log("Error: Downloaded file from IPFS is empty!")
+      }
+
+      /*DEPRECATED
       //check if bim model is how it should be
       if(file.headers["content-type"] === 'application/json'){
 
@@ -254,16 +293,9 @@ function Onchain() {
         
         console.log("measurement result:", measurement_data)
 
-        //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
-
       }else{
         console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
-      }
+      }*/
     } catch (error) {
       console.log(error)
     }
