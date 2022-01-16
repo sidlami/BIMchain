@@ -10,12 +10,10 @@ const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
 
 
-function Onchain100() {
+function Onchain100(props) {
 
     //state variables
     const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
-    const [meta, setMeta] = useState("") //holds the inputed meta data of the to be uploaded bim model
-    const [geom, setGeom] = useState("") //holds the inputed geometry data of the to be uploaded bim model
     const [size, setSize] = useState(null)
     const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds an array of all personal bim models stored on ethereum
     const [uploadableBIMmodels, setUploadableBIMmodels] = useState([]) //holds an array of all BIM models in OSS which can be uploaded to ethereum
@@ -31,7 +29,7 @@ function Onchain100() {
                 //conenct to web3
                 const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
-                //get the user
+                //get user's adress
                 const accounts = await web3.eth.getAccounts()
                 setUser(accounts[0])
 
@@ -120,17 +118,23 @@ function Onchain100() {
             console.log("properties:", properties)
             
             //check if model is how it should be
-            if(metadata !== null & properties !== null){
-                
+            if(metadata !== null & properties !== null & properties.data.data.collection !== null){
+
+                //compute file size of the to be uploaded bim model
+                var file_size = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
+                console.log("size of to be uploaded bim model in bytes:",file_size)
+
+                //estimate gas
+                const estimatedGas = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).estimateGas()
+                console.log("estimate gas cost of uploading whole BIM model:", estimatedGas)
+
                 //upload metadata and geometry of the selected BIM model to ethereum
-                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user, gasLimit : 30000000})
+                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user, gasLimit : 30000000, gas : 100000000})
 
                 if(receipt){
 
                     console.log(receipt)
 
-                    var file_size = Buffer.byteLength(JSON.stringify(metadata)) + Buffer.byteLength(JSON.stringify(properties))
-    
                     //get transaction's used gas amount
                     //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
                     var gas = receipt.gasUsed
@@ -145,24 +149,27 @@ function Onchain100() {
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes
-                        "gas" : gas,
-                        "time" : "null" //in ms
+                        "gas_write"	: gas,
+                        "gas_read" : 0,
+                        "time" : 0,
+                        "extra_time" : 0
                     }
                     
                     console.log("measurement result:", measurement_data)
     
                     //add measurement data to googlesheets
-                    /*
-                    await axios.post(
-                        'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-                        measurement_data
-                    )*/
-    
+                    if(props.testing){
+                        await axios.post(
+                            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+                            measurement_data  
+                        )
+                    }
+
                     //alert("view console to check measurement data of upload to ethereum")
                     //window.location.reload()
                 }
             }else{
-                console.log("ERROR: The download from OSS bucket via model derivative API failed!")
+                console.log("ERROR: The download from OSS bucket via model derivative API failed! Try again :)")
             }
         } catch (error) {
             console.log(error)
@@ -192,6 +199,9 @@ function Onchain100() {
                     //get size of the downloaded file in bytes
                     var file_size  = Buffer.byteLength(JSON.stringify(model))
 
+                    //estimate gas cost of calling whole BIM model stored on ethereum
+                    const estimatedGas = await onchainSmartContract.methods.getOffchainModels().estimateGas()
+
                     //summary measurement data to googlesheets
                     const measurement_data = {
                         "timestamp" : end.toString(), 
@@ -202,18 +212,21 @@ function Onchain100() {
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes
-                        "gas"	: 0,
-                        "time" : performance_time //in ms
+                        "gas_write"	: 0,
+                        "gas_read" : estimatedGas, //extra gas could be added due to read in on mount function
+                        "time" : performance_time,
+                        "extra_time" : 0 //extra time could be added due to read in on mount function
                     }
                     
                     console.log("measurement result:", measurement_data)
   
                     //add measurement data to googlesheets
-                    /*
-                    await axios.post(
-                        'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-                        measurement_data  
-                    )*/
+                    if(props.testing){
+                        await axios.post(
+                            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+                            measurement_data  
+                        )
+                    }
                 }else{
                     console.log("ERROR: No data received from ethereum!")
                 }

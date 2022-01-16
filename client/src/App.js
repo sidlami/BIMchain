@@ -7,11 +7,13 @@ import On_offchain from './pages/On_offchain';
 
 function App() {
 
-  const [selectedMethod, setSelectedMethod] = useState(0)
+  const [testingMode, setTestingMode] = useState(false)
 
   return (
-    <div style={{position: "absolute", left: "50px"}}>
+    <div style={{position: "absolute", left: "50px", backgroundColor : testingMode ? "#fc03d7" : "#FFFFFF"}}>
       <h1>Welcome to BIMchain</h1>
+      <label htmlFor='slider'>Activate testing mode:</label>
+      <input name="slider" type="checkbox" onClick={() => setTestingMode(!testingMode)}></input>
       <p>
         This DApp functions as a prototype for testing the possibilities to store BIM models on the ethereum blockchain.
       </p>
@@ -22,19 +24,19 @@ function App() {
         <option value={1}>on and offchain storage</option>
         <option value={2}>onchain storage (IPFS/Filecoin)</option>
       </select>*/}
-      <div style={{position: "absolute", left: "25px"}}>
+      <div style={{position: "absolute", left: "25px", backgroundColor : testingMode ? "#fc03d7" : "#FFFFFF"}}>
         <h3>1. ON- AND OFFCHAIN STORAGE</h3>
-        <On_offchain></On_offchain>
+        <On_offchain testing={testingMode}></On_offchain>
         <br></br>
         <br></br>
         
         <h3>2. ONCHAIN STORAGE (IPFS)</h3>
-        <OnchainIPFS></OnchainIPFS>
+        <OnchainIPFS testing={testingMode}></OnchainIPFS>
         <br></br>
         <br></br>
 
         <h3>3. ONCHAIN STORAGE (100% ON ETHEREUM)</h3>
-        <Onchain100></Onchain100>
+        <Onchain100 testing={testingMode}></Onchain100>
       </div>
     </div>
   );

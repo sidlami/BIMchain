@@ -9,7 +9,7 @@ import {ADRESS_IPFS, ABI_IPFS } from '../config'; //importing the ganache truffl
 const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
 
-function OnchainIPFS() {
+function OnchainIPFS(props) {
 
   //state variables
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
@@ -18,6 +18,8 @@ function OnchainIPFS() {
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [fileName, setFileName] = useState() //holds the name of the to be uploaded file
   const [selectedKey, setSelectedKey] = useState("") //holdes the key of the personal BIM model stored in IPFS and selected by the user for perfoming the onchain computation or was selected fordownload
+  const [extraDownloadGas, setExtraDownloadGas] = useState(0) //holds the interpolated value of gas cost per downloaded IPFS key
+  const [extraDownloadTime, setExtraDownloadTime] = useState(0) //holds the interpolated value of time per downloaded IPFS key
 
   //on mount
   useEffect(()=>{
@@ -43,10 +45,13 @@ function OnchainIPFS() {
 
         //estimate gas cost of calling all IPFS keys stored on ethereum
         const estimatedGas = await smartCon.methods.getIPFSModels().estimateGas()
-        console.log("Interpolated estimated gas needed for calling one IPFS key stored on ethereum:",estimatedGas/models.length)
+        const estimated_gas_per_key = estimatedGas/models.length //interpolate estimated gas cost per key downloaded from ethereum
+        setExtraDownloadGas(estimated_gas_per_key)
+        console.log("Interpolated estimated gas needed for calling one IPFS key stored on ethereum:", estimated_gas_per_key)
     
         //compute performance time of calling aka "downloading" one IPFS key from ethereum
-        var performance_time_per_key = (end.getTime() - start.getTime())/models.length
+        const performance_time_per_key = (end.getTime() - start.getTime())/models.length
+        setExtraDownloadTime(performance_time_per_key)
         console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
       } catch (error) {
         console.log(error)
@@ -102,19 +107,21 @@ function OnchainIPFS() {
           "file_size_ipfs" : file_size, //in bytes
           "file_size_oss" : 0, //in bytes
           "file_size_ethereum" : size_stored_on_eth, //in bytes
-          "gas"	: gas,
-          "time" : performance_time //in ms and only the upload to ipfs
+          "gas_write"	: gas,
+          "gas_read" : 0,
+          "time" : performance_time, //in ms and only the upload to ipfs
+          "extra_time" : 0
         }
         
         console.log("measurement result:", measurement_data)
 
         //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
-
+        if(props.testing){
+          await axios.post(
+            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+            measurement_data  
+          )
+        }
         //alert("view console to check measurement data of ipfs upload")
         //window.location.reload()
       }
@@ -153,19 +160,21 @@ function OnchainIPFS() {
           "file_size_ipfs" : file_size, //in bytes
           "file_size_oss" : 0, //in bytes
           "file_size_ethereum" : file_size_eth, //in bytes
-          "gas"	: 0,
-          "time" : performance_time //in ms
+          "gas_write"	: 0,
+          "gas_read" : extraDownloadGas,
+          "time" : performance_time, //in ms
+          "extra_time" : extraDownloadTime //in ms
         }
         
         console.log("measurement result:", measurement_data)
 
         //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
-
+        if(props.testing){
+          await axios.post(
+            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+            measurement_data  
+          )
+        }
       }else{
         console.log("Error: Downloaded file from IPFS is empty!")
       }
@@ -180,7 +189,7 @@ function OnchainIPFS() {
       <p>
         This page tests the possibility to store BIM models in the Inter Planetary File System (IPFS). 
         It is common practice to use filecoin as an additonal layer on IPFS for an incentive to store files decentrally.
-        This prototype, however, does not make use of it altough there are use cases for which it makes sense to use filecoin as well.
+        This prototype, however, does not make use of it altough it makes sense to use filecoin for some use cases.
       </p>
       <h4>Upload your BIM model to IPFS:</h4>
       <label htmlFor='input-file'>Select and upload bim model: </label>

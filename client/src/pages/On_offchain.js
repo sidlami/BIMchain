@@ -4,7 +4,7 @@ import axios from'axios';
 import qs from 'qs';
 import {ADRESS, ABI} from '../config.js'; //importing the ganache truffle address of deployed smart contract as well as the abi of the smart contract
 
-function On_offchain() {
+function On_offchain(props) {
 
   //state variables
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
@@ -14,6 +14,9 @@ function On_offchain() {
   const [user, setUser] = useState("") //holdes the wallet address of the user in the frontend
   const [selectedURN, setSelectedURN] = useState("") //holdes the URN of the personal BIM model which was selected by the user for perfoming the onchain computation
   const [uploadURN, setUploadURN] = useState("") //holdes the URN of the personal BIM model which was inputed by the user and should be uploaded to blockchain. this URN is created in the process of uploading the bim model to the OSS of the model derivative api
+
+  const [extraDownloadGas, setExtraDownloadGas] = useState(0) //holds the interpolated value of gas cost per downloaded OSS key
+  const [extraDownloadTime, setExtraDownloadTime] = useState(0) //holds the interpolated value of time per downloaded OSS key
 
   //on mount
   useEffect(()=>{
@@ -33,7 +36,7 @@ function On_offchain() {
         //load in the OSS key of all user's personal bim models. 
         //All OSS keys are stored on Ethereum.
         //OSS keys are needed to find user's personal bim models uploaded to OSS.
-        //OSS represents a CDE
+        //OSS represents a CDE.
         var end, start;
         start = new Date();
         const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
@@ -42,11 +45,13 @@ function On_offchain() {
 
         //estimate gas cost of calling all OSS keys stored on ethereum
         const estimatedGas = await smartCon.methods.getOffchainModels().estimateGas()
-        var estimated_gas_per_key = estimatedGas/personalOffchainmodels.length //interpolate estimated gas cost per key downloaded from ethereum
+        const estimated_gas_per_key = estimatedGas/personalOffchainmodels.length //interpolate estimated gas cost per key downloaded from ethereum
+        setExtraDownloadGas(estimated_gas_per_key)
         console.log("Interpolated estimated gas needed for calling one OSS key stored on ethereum:", estimated_gas_per_key )
 
         //compute performance time of calling aka "downloading" one OSS key from ethereum
-        var performance_time_per_key = (end.getTime() - start.getTime())/personalOffchainmodels.length
+        const performance_time_per_key = (end.getTime() - start.getTime())/personalOffchainmodels.length
+        setExtraDownloadTime(performance_time_per_key)
         console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
       }catch(e){
         console.log(e)
@@ -105,7 +110,7 @@ function On_offchain() {
       var end, start;
       start = new Date();
       const upload = await axios.put(
-        `https://developer.api.autodesk.com/oss/v2/buckets/test_bim_models/objects/${fileName}.ifc`,
+        `https://developer.api.autodesk.com/oss/v2/buckets/test_bim_models/objects/${fileName}`,
         toBeUploadedModel,
         {
           headers : {
@@ -216,18 +221,21 @@ function On_offchain() {
             "file_size_ipfs" : 0, //in bytes
             "file_size_oss" : upload.data.size, //in bytes
             "file_size_ethereum" : file_size_eth, //in bytes
-            "gas"	: gas,
+            "gas_write"	: gas,
+            "gas_read" : 0,
             "time" : performance_time, //in ms
+            "extra_time" : 0,
           }
           console.log("measurement result:", measurement_data)
 
-          //add measurement data to googlesheets
-          /*
-          await axios.post(
-            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-            measurement_data  
-          )*/
-
+          //add measurement data to googlesheets if testing mode activated
+          if(props.testing){
+            await axios.post(
+              'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+              measurement_data  
+            )
+          }
+          
           //alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
           //window.location.reload()
         }else{
@@ -301,19 +309,21 @@ function On_offchain() {
           "file_size_ipfs" : 0, //in bytes
           "file_size_oss" : file_size, //in bytes
           "file_size_ethereum" : file_size_eth, //in bytes
-          "gas"	: 0,
-          "time" : performance_time //in ms
+          "gas_write"	: 0,
+          "gas_read" : extraDownloadGas,
+          "time" : performance_time, //in ms
+          "extra_time" : extraDownloadTime //in ms
         }
         
         console.log("measurement result:", measurement_data)
 
         //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
-
+        if(props.testing){
+          await axios.post(
+            'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+            measurement_data  
+          )
+        }
       }else{
         console.log("ERROR: The download from OSS bucket via model derivative API failed!","If you just uploaded the BIM model to OSS, wait a little bit and download it later again!")
       }
@@ -323,7 +333,7 @@ function On_offchain() {
   }
 
   return (
-    <div>
+    <div >
         <p>Dear user: {user},</p>
         <p>
             This page tests the possibility to store BIM models offchain in a CDE (or here: an OSS bucket of an autodesk froge app) and the URN of these models.
