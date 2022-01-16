@@ -25,125 +25,39 @@ function Onchain100() {
 
     //on mount
     useEffect(()=>{
-    const test = async () => {
-        try {
+        const test = async () => {
+            try {
 
-            //conenct to web3
-            const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
+                //conenct to web3
+                const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
 
-            //get the user
-            const accounts = await web3.eth.getAccounts()
-            setUser(accounts[0])
+                //get the user
+                const accounts = await web3.eth.getAccounts()
+                setUser(accounts[0])
 
-            //connect to smart contract managing 100% on-chain 
-            const smartCon = new web3.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
-            setOnchainSmartContract(smartCon)
+                //connect to smart contract managing 100% on-chain 
+                const smartCon = new web3.eth.Contract(ABI_ONCHAIN100, ADRESS_ONCHAIN100)
+                setOnchainSmartContract(smartCon)
 
-            //get number of personal bim models stored on ethereum
-            const numberModels = await smartCon.methods.getOnchainModelKeys().call()
-            console.log("number of personal models on ethereum", numberModels)
-            
-            const models = []
-            for(var i=0; i<numberModels; i++){
-                models.push(i)
-            }
-            setPersonalBIMmodels(models)
-
-            //get models in OSS which can be uploaded
-            const smartConOffchain = new web3.eth.Contract(ABI, ADRESS)
-            const personalOffchainModels = await smartConOffchain.methods.getOffchainModels().call()
-            setUploadableBIMmodels(personalOffchainModels)
-            
-            //authenticate to autodesk forge
-            /*const token = await authenticateToForge()
-            console.log("token:", token)
-
-            //get buckets
-            
-            const bucket = await axios.get(
-            `https://developer.api.autodesk.com/oss/v2/buckets`, 
-            {
-                headers : {
-                    Authorization: `Bearer ${token}`
+                //get number of personal bim models stored on ethereum
+                const numberModels = await smartCon.methods.getOnchainModelKeys().call()
+                console.log("number of personal models on ethereum", numberModels)
+                
+                const models = []
+                for(var i=0; i<numberModels; i++){
+                    models.push(i)
                 }
-            }
-            )
-            console.log(bucket)
-            
+                setPersonalBIMmodels(models)
 
-            //get Key of all bim models stored in the OSS of autodesk forge
-            //link: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/
-            const bucketKey = 'test_bim_models'
-
-            const models = await axios.get(
-            `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects`, 
-            {
-                headers : {
-                    Authorization: `Bearer ${token}`
-                }
+                //get models in OSS which can be uploaded
+                const smartConOffchain = new web3.eth.Contract(ABI, ADRESS)
+                const personalOffchainModels = await smartConOffchain.methods.getOffchainModels().call()
+                setUploadableBIMmodels(personalOffchainModels)
+            } catch (error) {
+                console.log(error)
             }
-            )
-
-            var urns = []
-            for(var i = 0; models.data.items.length; i++){
-                console.log(models.data.items[i].objectId)
-                urns.push(CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(models.data.items[i].objectId)))
-            }
-            console.log("Keys in OSS Bucket", urns)
-            setOssBIMmodels(urns)*/
-            
-        } catch (error) {
-            console.log(error)
         }
-    }
-    test()
-
-    /*
-    async function test(){
-        const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-        const network = await web3.eth.net.getNetworkType()
-        const accounts = await web3.eth.getAccounts()
-        setUser(accounts[0])
-        console.log("network:", network)
-        console.log("account:", accounts[0])
-
-        //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
-        const smartCon = new web3.eth.Contract(ABI, ADRESS)
-        console.log("SmartContract", smartCon)
-
-        //test connection to smart contract
-        const issuerContract = await smartCon.methods.owner().call()
-        console.log("issuer of smart contract: ", issuerContract)
-
-        //load in the Key of all user's personal bim models
-        try{
-
-        //get Key of all personal bim models stored on blockchain
-        // --> THIS IS DOWNLOADING ALL OF THE ONCHAIN PARTs OF THE OFFCHAIN BIM MODELS AT THE SAME TIME
-        // --> this is the download in an on- and offchain architecture, meaning there is no transaction fee for performing a call
-        const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
-
-        //store personal bim models in frontend
-        setPersonalBIMmodels(personalOffchainmodels)
-
-        //print personal bim models to console
-        if(personalOffchainmodels?.length !== 0){
-
-            for(var i=0; i < personalOffchainmodels.length; i++){
-            if(i === 0 ){
-                console.log("personal offchain BIM models:")
-            }
-            console.log("offchain bim model number "+i+": "+personalOffchainmodels[i])
-            }
-        }else{
-            console.log("You currently do not possess any offchain bim models!")
-        }
-        }catch(e){
-        console.log(e)
-        }
-    }
-    test()
-    */
+        test()
     }, [])
 
     //function for authenticating to autodesk forge app, returns token 
@@ -171,23 +85,7 @@ function Onchain100() {
         }
     }
 
-    //deprecated: function which captures the inputed JSON bim model file before user uploads it to ethereum
-    const captureFile = event => {
-        event.preventDefault()
-        const file = event.target.files[0]
-        const reader = new window.FileReader() //functions like a library
-        reader.readAsText(file) //read in file as text
-
-        //once reading is done (aka "on load end") access the content of the file by reader.result
-        reader.onloadend = () => {
-            const model = JSON.parse(reader.result)
-            setMeta(model.meta_data)
-            setGeom(model.geom_data)
-            setSize(file.size) //in bytes
-        }
-    }
-
-    //function uploads bim model on ethereum
+    //function uploads bim model to ethereum
     const upload = async () => {
         try {
             //authenticate to forge app
@@ -271,74 +169,8 @@ function Onchain100() {
         }
     }
 
-    //old version: function uploads bim model on ethereum
-    //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
-    const uploadDeprecated = async () => {
-        try {
-            const receipt = await onchainSmartContract.methods.setOnchainModels(meta, geom).send({from:user, gasLimit: 8000000000})
-
-            if(receipt){
-
-                //get file size 
-                /* old computation of file size
-                //get size of uploaded file in bytes
-                const json_model = {
-                    "meta" : meta,
-                    "geom" : geom
-                }
-                var file_size  = Buffer.byteLength(JSON.stringify(json_model))
-                */
-                var file_size = Buffer.byteLength(JSON.stringify(meta)) + Buffer.byteLength(JSON.stringify(geom))
-
-                //get transaction's used gas amount
-                //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
-                var gas = receipt.gasUsed
-                
-                //summary measurement data
-                const measurement_data = {
-                    "timestamp" : (new Date()).toString(),
-                    "method" : "onchain100",
-                    "operation"	: "upload",
-                    "file_key" : user+"-"+personalBIMmodels.length,
-                    "file_name" : "",
-                    "file_size_ipfs" : 0, //in bytes
-                    "file_size_oss" : 0, //in bytes
-                    "file_size_ethereum" : file_size, //in bytes
-                    "gas" : gas,
-                    "time" : "null" //in ms
-                }
-                
-                console.log("measurement result:", measurement_data)
-
-                //add measurement data to googlesheets
-                /*
-                await axios.post(
-                    'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-                    measurement_data
-                )*/
-
-                alert("view console to check measurement data of upload to ethereum")
-                window.location.reload()
-
-                //create json file out of meta data and geometry data (aka properties)
-                /*const newJsonBimModel = {
-                    "meta_data" : JSON.stringify(metadata),
-                    "geom_data" : JSON.stringify(properties)
-                }
-
-                //add new json bim model to folder: 'test_models_in_json'
-                await axios.post("http://localhost:3001/api/file", {
-                "file_name" : selectedURN, 
-                "newJsonBimModel" : newJsonBimModel
-                })*/
-            }
-        } catch (error) {
-            console.log(error)
-        }
-    }
 
     //function downloads bim model from ethereum and loads it into frontend
-    //key = an integer which holds the position of the element in the BIMmodels array you desire to download
     const download = async () => {
         if(selectedKey){
             try {
@@ -389,12 +221,8 @@ function Onchain100() {
                 console.log(error)
             }
         }else{
-            alert("PLease select key of personal im model on ethereum before downloading it!")
+            alert("Please select key of personal im model on ethereum before downloading it!")
         }
-    }
-
-    const compute = async () => {
-
     }
 
     return (
@@ -403,8 +231,6 @@ function Onchain100() {
         <p>In the upcoming, you can test the possibility to store entire BIM models on Ethereum.</p>
         <h4>Upload your BIM model to Ethereum</h4>
 
-        {/*<label htmlFor='input-file'>insert bim model JSON file: </label>
-        <input name='input-file' type='file' onChange={captureFile}/>*/}
         {uploadableBIMmodels?
             <div>
                 <label htmlFor="select-uploadable-model">Select your BIM model you want to upload: </label>
@@ -444,7 +270,6 @@ function Onchain100() {
                     }) 
                 }
             </select>
-            <button type="button" onClick={compute}>Compute on chain</button>
             <button type="button" onClick={download}>Download</button>
         </div>
         }

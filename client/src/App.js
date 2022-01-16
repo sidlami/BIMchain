@@ -1,7 +1,7 @@
 
 import './App.css';
 import React, {useEffect, useState} from 'react';
-import Onchain from './pages/Onchain';
+import OnchainIPFS from './pages/OnchainIPFS';
 import Onchain100 from './pages/Onchain100';
 import On_offchain from './pages/On_offchain';
 
@@ -29,7 +29,7 @@ function App() {
         <br></br>
         
         <h3>2. ONCHAIN STORAGE (IPFS)</h3>
-        <Onchain ></Onchain>
+        <OnchainIPFS></OnchainIPFS>
         <br></br>
         <br></br>
 

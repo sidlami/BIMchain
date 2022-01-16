@@ -9,7 +9,7 @@ import {ADRESS_IPFS, ABI_IPFS } from '../config'; //importing the ganache truffl
 const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
 
-function Onchain() {
+function OnchainIPFS() {
 
   //state variables
   const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
@@ -35,130 +35,25 @@ function Onchain() {
         setOnchainSmartContract(smartCon)
 
         //get all bim models stored in IPFS
+        var end, start;
+        start = new Date();
         const models = await smartCon.methods.getIPFSModels().call()
+        end = new Date();
         setPersonalBIMmodels(models)
 
         //estimate gas cost of calling all IPFS keys stored on ethereum
         const estimatedGas = await smartCon.methods.getIPFSModels().estimateGas()
         console.log("Interpolated estimated gas needed for calling one IPFS key stored on ethereum:",estimatedGas/models.length)
     
-        //authenticate to autodesk forge
-        /*const token = await authenticateToForge()
-        console.log("token:", token)
-
-        //get buckets
-        
-        const bucket = await axios.get(
-          `https://developer.api.autodesk.com/oss/v2/buckets`, 
-          {
-              headers : {
-                  Authorization: `Bearer ${token}`
-              }
-          }
-        )
-        console.log(bucket)
-        
-
-        //get URN of all bim models stored in the OSS of autodesk forge
-        //link: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/
-        const bucketKey = 'test_bim_models'
-
-        const models = await axios.get(
-          `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects`, 
-          {
-            headers : {
-                Authorization: `Bearer ${token}`
-            }
-          }
-        )
-
-        var urns = []
-        for(var i = 0; models.data.items.length; i++){
-            console.log(models.data.items[i].objectId)
-            urns.push(CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(models.data.items[i].objectId)))
-        }
-        console.log("URNs in OSS Bucket", urns)
-        setOssBIMmodels(urns)*/
-          
+        //compute performance time of calling aka "downloading" one IPFS key from ethereum
+        var performance_time_per_key = (end.getTime() - start.getTime())/models.length
+        console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
       } catch (error) {
         console.log(error)
       }
     }
     test()
-
-    /*
-    async function test(){
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-      const network = await web3.eth.net.getNetworkType()
-      const accounts = await web3.eth.getAccounts()
-      setUser(accounts[0])
-      console.log("network:", network)
-      console.log("account:", accounts[0])
-
-      //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
-      const smartCon = new web3.eth.Contract(ABI, ADRESS)
-      console.log("SmartContract", smartCon)
-
-      //test connection to smart contract
-      const issuerContract = await smartCon.methods.owner().call()
-      console.log("issuer of smart contract: ", issuerContract)
-
-      //load in the URN of all user's personal bim models
-      try{
-
-        //get URN of all personal bim models stored on blockchain
-        // --> THIS IS DOWNLOADING ALL OF THE ONCHAIN PARTs OF THE OFFCHAIN BIM MODELS AT THE SAME TIME
-        // --> this is the download in an on- and offchain architecture, meaning there is no transaction fee for performing a call
-        const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
-
-        //store personal bim models in frontend
-        setPersonalBIMmodels(personalOffchainmodels)
-
-        //print personal bim models to console
-        if(personalOffchainmodels?.length !== 0){
-
-          for(var i=0; i < personalOffchainmodels.length; i++){
-            if(i === 0 ){
-              console.log("personal offchain BIM models:")
-            }
-            console.log("offchain bim model number "+i+": "+personalOffchainmodels[i])
-          }
-        }else{
-          console.log("You currently do not possess any offchain bim models!")
-        }
-      }catch(e){
-        console.log(e)
-      }
-    }
-    test()
-    */
   }, [])
-
-  //function for authenticating to autodesk forge app, returns token 
-  const authenticateToForge = async () => {
-    try{
-      var data = qs.stringify({
-        'grant_type': 'client_credentials',
-        'client_id': 'XLzyTeEl6Mbl8sWYkALaryGC9g6yUDi7',
-        'client_secret': 'RptOywJiF7ZPWJMH',
-        'scope': 'data:read data:write data:create bucket:read bucket:create'
-      });
-  
-      const token = await axios.post(
-        "https://developer.api.autodesk.com/authentication/v1/authenticate",
-        data,
-        {
-          headers: {
-            "Content-Type" : "application/x-www-form-urlencoded"
-          }
-        }
-      )
-      
-      return token.data.access_token
-    }catch(e){
-      return e
-    }
-  }
   
   //function which captures the inputed file before user uploads it to IPFS
   const captureFile = event => {
@@ -274,55 +169,6 @@ function Onchain() {
       }else{
         console.log("Error: Downloaded file from IPFS is empty!")
       }
-
-      /*DEPRECATED
-      //check if bim model is how it should be
-      if(file.headers["content-type"] === 'application/json'){
-
-        //print out model
-        console.log("downloaded bim model from ipfs")
-        console.log("meta data:", file.data.meta_data)
-        console.log("geom data:", file.data.geom_data)
-
-        //compute performance time
-        var performance_time = end.getTime() - start.getTime()
-
-        //get size of the downloaded file in bytes
-        var file_size  = Buffer.byteLength(JSON.stringify(file.data))
-
-        //summary measurement data to googlesheets
-        const measurement_data = {
-          "timestamp" : end.toString(),
-          "method" : "onchain_ipfs",
-          "operation"	: "download",
-          "file_key" : selectedKey,
-          "file_size"	: file_size, //bytes
-          "gas"	: 0,
-          "time" : performance_time //in ms
-        }
-        
-        console.log("measurement result:", measurement_data)
-
-      }else{
-        console.log("ERROR: The downloaded file is not a BIM model in JSON format!")
-      }*/
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  const compute = async () =>{
-    try {
-      const file = await axios.get("https://ipfs.infura.io/ipfs/" + selectedKey)
-
-      if(file.headers["content-type"] === 'application/json'){
-        const meta = file.data.meta_data
-        const geom = file.data.geom_data
-
-        //call onchain computation smart contract for computing 
-          //onchainSmartContract.methods.compute(meta, geom).call() or send() ???
-      }
-      console.log(file)
     } catch (error) {
       console.log(error)
     }
@@ -359,29 +205,11 @@ function Onchain() {
                 }) 
                 }
             </select>
-            <button type="button" onClick={compute}>Compute on chain</button>
             <button type="button" onClick={download}>Download</button>
-        </div>
-        /*<div>
-          <label htmlFor="select-model">Select one of your BIM models in IPFS: </label>
-          <select name="select-model" value={selectedURN} onChange={(e)=>setSelectedURN(e.target.value)}>
-              <option value="" disabled hidden>Choose here</option>
-              {
-              personalBIMmodels.map(item =>{
-                  return(
-                  <option key ={item.fileHash} value={item.fileHash}>
-                      {item.fileName+" ("+item.fileHash+")"}
-                  </option>
-                  )
-              }) 
-              }
-          </select>
-          <button type="button">Compute on chain</button>
-          <button type="button">Download</button>
-        </div>*/     
+        </div>   
       }
     </div>
   );
 }
 
-export default Onchain;
+export default OnchainIPFS;

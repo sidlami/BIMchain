@@ -19,37 +19,35 @@ function On_offchain() {
   useEffect(()=>{
     async function test(){
       try{
+        //connect to web3 library which is essential for communicating with on-chain smart contracts
         const web3 = new Web3(Web3.givenProvider || "http://localhost:8545")
-        const network = await web3.eth.net.getNetworkType()
+
+        //get active adress of user (e.g. metamask wallet adress)
         const accounts = await web3.eth.getAccounts()
         setUser(accounts[0])
-        console.log("network:", network)
 
-        //video 2: https://www.dappuniversity.com/articles/ethereum-dapp-react-tutorial
+        //connect via web3 to the smart contract managing the on- and off-chain storing 
         const smartCon = new web3.eth.Contract(ABI, ADRESS)
         setOnchainSmartContract(smartCon)
 
-        //load in the URN of all user's personal bim models
-        //get URN of all personal bim models stored on blockchain
-        // --> THIS IS DOWNLOADING ALL OF THE ONCHAIN PARTs OF THE OFFCHAIN BIM MODELS AT THE SAME TIME
-        // --> this is the download in an on- and offchain architecture, meaning there is no transaction fee for performing a call
+        //load in the OSS key of all user's personal bim models. 
+        //All OSS keys are stored on Ethereum.
+        //OSS keys are needed to find user's personal bim models uploaded to OSS.
+        //OSS represents a CDE
         var end, start;
         start = new Date();
         const personalOffchainmodels = await smartCon.methods.getOffchainModels().call()
         end = new Date();
+        setPersonalBIMmodels(personalOffchainmodels)
 
         //estimate gas cost of calling all OSS keys stored on ethereum
         const estimatedGas = await smartCon.methods.getOffchainModels().estimateGas()
-        var estimated_gas_per_key = estimatedGas/personalOffchainmodels.length
+        var estimated_gas_per_key = estimatedGas/personalOffchainmodels.length //interpolate estimated gas cost per key downloaded from ethereum
         console.log("Interpolated estimated gas needed for calling one OSS key stored on ethereum:", estimated_gas_per_key )
 
-        //compute performance time of calling aka "downloading" key of all OffchainModels
+        //compute performance time of calling aka "downloading" one OSS key from ethereum
         var performance_time_per_key = (end.getTime() - start.getTime())/personalOffchainmodels.length
         console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
-
-        //store personal bim models in frontend
-        setPersonalBIMmodels(personalOffchainmodels)
-
       }catch(e){
         console.log(e)
       }
@@ -83,7 +81,7 @@ function On_offchain() {
     }
   }
 
-  //function which captures the inputed file before user uploads it to IPFS
+  //function which captures the inputed file before user uploads it to OSS
   const captureFile = event => {
     event.preventDefault()
     const file = event.target.files[0]
@@ -157,9 +155,8 @@ function On_offchain() {
       )
       console.log("translation job:", translation)
 
-      //check if translation of model to svf was successful
+      //check if model's translation to svf was successful
       var successful_translation = false
-      
       var translation_job =  await axios.get(
         `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
         {
@@ -168,7 +165,6 @@ function On_offchain() {
           }
         }
       )
-
       while(translation_job.data.status === 'pending' || translation_job.data.status === 'inprogress'){
         translation_job =  await axios.get(
           `https://developer.api.autodesk.com/modelderivative/v2/designdata/${ossId}/manifest`,
@@ -181,6 +177,7 @@ function On_offchain() {
         console.log("translation progress:", translation_job.data.progress)
       }
 
+      //assess status of finished check on successfullness of translation job
       if(translation_job.data.status === 'failed'){
         console.log("Error: translation of model into sfv format failed.", "response:", translation_job)
       }else{
@@ -242,114 +239,17 @@ function On_offchain() {
     }
   }
 
-  //function uploads URN string to blockchain (note: costs occure)
-  const upload_final = async () => {
-    try{
-      const receipt = await onchainSmartContract.methods.setOffchainModels(uploadURN).send({from : user})
-      if(receipt){
-
-        //get size of the downloaded file in bytes
-        var file_size = Buffer.byteLength(uploadURN)
-
-        //get transaction's used gas amount
-        //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
-        var gas = receipt.gasUsed
-        console.log("Onchain100 upload used gas amount:", gas)
-
-        //summary measurement data to googlesheets
-        const measurement_data = {
-          "timestamp" : (new Date()).toString(),
-          "method" : "on_off",
-          "operation"	: "upload",
-          "file_key" : uploadURN,
-          "file_size"	: file_size, //bytes
-          "file_size_ipfs" : 0,
-          
-          "gas"	: gas,
-          "time" : "null" //in ms
-        }
-        console.log("measurement result:", measurement_data)
-
-        //add measurement data to googlesheets
-        /*
-        await axios.post(
-          'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
-          measurement_data  
-        )*/
-
-        //alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
-        //window.location.reload()
-      }else{
-        console.log("ERROR: No receipt received from write on ethereum!")
-      }
-    }catch(e){
-      console.log(e)
-    }
-  }
-
-  //function retrieves data from OSS bucket, transforms the property data 
-  //and passes the data to blockchain for further computation
-  const compute = async () => {
-    console.log("selected urn:", selectedURN)
-    try{
-      //1. authenticate
-      const token = await authenticateToForge()
-      console.log("token:",token)
-
-      //2. get URN from onchain and thus ensuring valid usage of bim model
-      //--> user selects URN and frontend stores in variable: selectedURN
-
-      //3. get metadata based on the selected URN stored in variable: selectedURN 
-      const metadata = await axios.get(
-        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata`, 
-        {
-          headers : {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      console.log("metadata:", metadata)
-      
-      //4. extract model guid from meta data
-      const guid = metadata.data.data.metadata[0].guid
-      console.log("guid:", metadata.data.data.metadata[0].guid)
-      
-      //5. get properties based on urn 
-      const properties = await axios.get(
-        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata/${guid}/properties`, 
-        {
-          headers : {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-      console.log("properties:", properties)
-
-      //6. transform property data into a predefined struct so that solidity can work with the data
-      //this is the interesting interface between onchain bim model data and offchain usage of this data
-
-      
-      //7. send properties to memory of smart contract which then performs the onchain computation
-      //await onchainSmartContract.methods.setOffchainModels().send({from : user})
-
-      //8. printout onchain cpomputation result + performance aka cost
-      
-    }catch(e){
-      console.log(e)
-    }
-  }
-
   //function downloads bim model from CDE and loads it into frontend
   const download = async () => {
     try {
       
-      //1. authenticate
+      //authenticate
       const token = await authenticateToForge()
 
-      //2. get URN from onchain and thus ensuring valid usage of bim model
+      //get URN from onchain and thus ensuring valid usage of bim model
       //--> user selects URN and frontend stores in variable: selectedURN
 
-      //3. get metadata based on the selected URN stored in variable: selectedURN 
+      //get metadata based on the selected URN stored in variable: selectedURN 
       var start = new Date();
       const metadata = await axios.get(
         `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata`, 
@@ -360,10 +260,10 @@ function On_offchain() {
         }
       )
       
-      //4. extract model guid from meta data
+      //extract model guid from meta data
       const guid = metadata.data.data.metadata[0].guid
      
-      //5. get properties based on urn 
+      //get properties based on selected urn and guid
       const properties = await axios.get(
         `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata/${guid}/properties`, 
         {
@@ -414,18 +314,6 @@ function On_offchain() {
           measurement_data  
         )*/
 
-        //create json file out of meta data and geometry data (aka properties)
-        /*const newJsonBimModel = {
-          "meta_data" : JSON.stringify(metadata),
-          "geom_data" : JSON.stringify(properties)
-        }
-
-        //add new json bim model to folder: 'test_models_in_json'
-        await axios.post("http://localhost:3001/api/file", {
-          "file_name" : selectedURN,
-          "newJsonBimModel" : newJsonBimModel
-        })*/
-
       }else{
         console.log("ERROR: The download from OSS bucket via model derivative API failed!","If you just uploaded the BIM model to OSS, wait a little bit and download it later again!")
       }
@@ -462,7 +350,6 @@ function On_offchain() {
                   }) 
                   }
               </select>
-              <button type="button" onClick={compute}>Compute on chain</button>
               <button type="button" onClick={download}>Download</button>
             </div>    
         }
