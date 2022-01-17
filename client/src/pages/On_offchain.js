@@ -234,10 +234,10 @@ function On_offchain(props) {
               'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
               measurement_data  
             )
+            window.location.reload()
+          }else{
+            alert("file: "+ossId+" uploaded to CDE. view console to check measurement data of upload to CDE and its key to ethereum. Please reload the page to select this newly uploaded file for download.")
           }
-          
-          //alert("view console to check measurement data of upload to CDE and CDE key to ethereum")
-          //window.location.reload()
         }else{
           console.log("ERROR: No receipt received from write on ethereum!")
         }
@@ -297,7 +297,7 @@ function On_offchain(props) {
         var file_size  = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
 
         //compute size of data on ethereum
-        var file_size_eth = Buffer.byteLength(JSON.stringify(selectedURN))
+        var file_size_eth = Buffer.byteLength(selectedURN)
 
         //summary measurement data to googlesheets
         const measurement_data = {

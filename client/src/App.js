@@ -10,7 +10,7 @@ function App() {
   const [testingMode, setTestingMode] = useState(false)
 
   return (
-    <div style={{position: "absolute", left: "50px", backgroundColor : testingMode ? "#fc03d7" : "#FFFFFF"}}>
+    <div style={{position: "absolute", left: "50px", backgroundColor : testingMode ? "#f8e3fa" : "#FFFFFF"}}>
       <h1>Welcome to BIMchain</h1>
       <label htmlFor='slider'>Activate testing mode:</label>
       <input name="slider" type="checkbox" onClick={() => setTestingMode(!testingMode)}></input>
@@ -24,7 +24,7 @@ function App() {
         <option value={1}>on and offchain storage</option>
         <option value={2}>onchain storage (IPFS/Filecoin)</option>
       </select>*/}
-      <div style={{position: "absolute", left: "25px", backgroundColor : testingMode ? "#fc03d7" : "#FFFFFF"}}>
+      <div style={{position: "absolute", left: "25px", backgroundColor : testingMode ? "#f8e3fa" : "#FFFFFF"}}>
         <h3>1. ON- AND OFFCHAIN STORAGE</h3>
         <On_offchain testing={testingMode}></On_offchain>
         <br></br>
@@ -37,6 +37,8 @@ function App() {
 
         <h3>3. ONCHAIN STORAGE (100% ON ETHEREUM)</h3>
         <Onchain100 testing={testingMode}></Onchain100>
+        <br></br>
+        <br></br>
       </div>
     </div>
   );

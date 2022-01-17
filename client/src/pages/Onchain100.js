@@ -122,14 +122,14 @@ function Onchain100(props) {
 
                 //compute file size of the to be uploaded bim model
                 var file_size = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
-                console.log("size of to be uploaded bim model in bytes:",file_size)
+                console.log("size of to be uploaded bim model in bytes:", file_size)
 
                 //estimate gas
                 const estimatedGas = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).estimateGas()
                 console.log("estimate gas cost of uploading whole BIM model:", estimatedGas)
 
                 //upload metadata and geometry of the selected BIM model to ethereum
-                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user, gasLimit : 30000000, gas : 100000000})
+                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user})
 
                 if(receipt){
 
@@ -192,6 +192,12 @@ function Onchain100(props) {
                     console.log("downloaded bim model from ethereum")
                     console.log("meta data:", model.meta.data)
                     console.log("geom data:", model.geom.data)
+
+                    //extract file name
+                    const metadata = JSON.parse(model.meta.data)
+                    console.log("metadata as json:", metadata)
+                    console.log("file name of downloaded model stored on ethereum:", metadata[0].name)
+
 
                     //compute performance time
                     var performance_time = end.getTime() - start.getTime()

@@ -64,7 +64,6 @@ function OnchainIPFS(props) {
   const captureFile = event => {
     event.preventDefault()
     const file = event.target.files[0]
-    console.log(file)
     setFileName(file.name)
     const reader = new window.FileReader()
     reader.readAsArrayBuffer(file)
@@ -121,9 +120,10 @@ function OnchainIPFS(props) {
             'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
             measurement_data  
           )
+          window.location.reload()
+        }else{
+          alert("file: "+decentralFile.path+" uploaded to IPFS. View console to check measurement data of upload to IPFS and its key to ethereum. Please reload the page to select this newly uploaded file for download.")
         }
-        //alert("view console to check measurement data of ipfs upload")
-        //window.location.reload()
       }
     } catch (error) {
       console.log(error)
@@ -140,15 +140,15 @@ function OnchainIPFS(props) {
 
       if(file){
         //print out model as string
-        console.log(file.data)
+        console.log("downloaded data from IPFS:", file.data)
 
         //compute performance time
         var performance_time = end.getTime() - start.getTime()
 
         //get size of the downloaded file in bytes
-        var file_size  = Buffer.byteLength(JSON.stringify(file.data))
+        var file_size = parseInt(file.headers["content-length"])
         //compute size of data on ethereum
-        var file_size_eth = Buffer.byteLength(JSON.stringify(selectedKey))
+        var file_size_eth = Buffer.byteLength(selectedKey)
 
         //summary measurement data to googlesheets
         const measurement_data = {
