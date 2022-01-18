@@ -6,9 +6,17 @@ contract Onchain100 {
     //state variable in memory on the blockchain for address of contract's owner
     address public owner = msg.sender;
 
+    struct MetaData{
+        string data;
+    }
+
+    struct GeomData{
+        string data;
+    }
+
     struct BIMmodel {
-        string meta;
-        string geom;
+        MetaData meta;
+        GeomData geom;
     }
     
     //mapping variable stores all personal offchain bim models by the users wallet address
@@ -26,15 +34,15 @@ contract Onchain100 {
     
     //add URN of a new personal offchain bim model to all of the user's offchain bim models
     function setOnchainModels(string memory _meta, string memory _geom) public{
-        // Make sure the meta data exists
+        // Make sure the file hash exists
         require(bytes(_meta).length > 0);
-        // Make sure geometry data exists
+        // Make sure file type exists
         require(bytes(_geom).length > 0);
 
         personal_onchain_models[msg.sender].push(
             BIMmodel(
-                _meta,
-                _geom
+                MetaData(_meta),
+                GeomData(_geom)
             )
         );
     }

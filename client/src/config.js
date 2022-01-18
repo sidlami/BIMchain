@@ -2,7 +2,7 @@
 //note: once you change the smart contract you need to re-deploy it and get the new adress as well as abi
 
 //the adress of smart contract on ganache (once you start ganache you manually need to change this value)
-export const ADRESS = '0xC8e311Af424e2Be14541190C273e9cbDBA21dc1F' 
+export const ADRESS = '0x6D7933e165C19304c14669c9875Fd29EE5D6855B' 
 
 //the abi of a smart contract stores all functions and its relevant infromation, like input and output data type
 export const ABI = [
@@ -48,7 +48,7 @@ export const ABI = [
 ]
 
 //address of smart contract for onchain ipfs on ganache
-export const ADRESS_IPFS = '0x35e116CcA9B645F2A97B50F776aFc5640093c022'
+export const ADRESS_IPFS = '0x82431c17e7713d1a0676085d981F21ad803D3387'
 
 //ABI for onchain ipfs smart contract
 export const ABI_IPFS = [
@@ -94,7 +94,7 @@ export const ABI_IPFS = [
 ]
 
 //address of smart contract for onchain ipfs on ganache
-export const ADRESS_ONCHAIN100 = '0x35E4346d9B5edfcEBA67FE5729a85CD975E03C1C'
+export const ADRESS_ONCHAIN100 = '0x737b85B477c9aF773FfA4aCFF5b36701b7a646d5'
 
 //ABI for onchain ipfs smart contract
 export const ABI_ONCHAIN100 = [
@@ -124,28 +124,14 @@ export const ABI_ONCHAIN100 = [
 			{
 				"components": [
 					{
-						"components": [
-							{
-								"internalType": "string",
-								"name": "data",
-								"type": "string"
-							}
-						],
-						"internalType": "struct Onchain100.MetaData",
+						"internalType": "string",
 						"name": "meta",
-						"type": "tuple"
+						"type": "string"
 					},
 					{
-						"components": [
-							{
-								"internalType": "string",
-								"name": "data",
-								"type": "string"
-							}
-						],
-						"internalType": "struct Onchain100.GeomData",
+						"internalType": "string",
 						"name": "geom",
-						"type": "tuple"
+						"type": "string"
 					}
 				],
 				"internalType": "struct Onchain100.BIMmodel",

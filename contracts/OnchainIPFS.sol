@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 //SPDX-License-Identifier: UNLICENSED
-contract Onchain {
+contract OnchainIPFS {
     
     //state variable in memory on the blockchain for address of contract's owner
     address public owner = msg.sender;

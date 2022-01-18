@@ -163,10 +163,11 @@ function Onchain100(props) {
                             'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
                             measurement_data  
                         )
-                    }
+                        window.location.reload()
+                    }else{
+                        alert("file: "+toBeUploadedModel+" uploaded to Ethereum. View console to check measurement data of upload to Ethereum. Please reload the page to select this newly uploaded file for download.")
 
-                    //alert("view console to check measurement data of upload to ethereum")
-                    //window.location.reload()
+                    }
                 }
             }else{
                 console.log("ERROR: The download from OSS bucket via model derivative API failed! Try again :)")
@@ -189,24 +190,22 @@ function Onchain100(props) {
                 //check if model is how it should be
                 if(model){
                     //print out model
-                    console.log("downloaded bim model from ethereum")
-                    console.log("meta data:", model.meta.data)
-                    console.log("geom data:", model.geom.data)
+                    console.log("downloaded bim model from ethereum:")
+                    console.log("meta data:", model.meta)
+                    console.log("geom data:", model.geom)
 
                     //extract file name
-                    const metadata = JSON.parse(model.meta.data)
-                    console.log("metadata as json:", metadata)
-                    console.log("file name of downloaded model stored on ethereum:", metadata[0].name)
-
+                    const metadata = JSON.parse(model.meta)
+                    const file_name = metadata[0].name
 
                     //compute performance time
-                    var performance_time = end.getTime() - start.getTime()
+                    const performance_time = end.getTime() - start.getTime()
 
                     //get size of the downloaded file in bytes
-                    var file_size  = Buffer.byteLength(JSON.stringify(model))
+                    const file_size  = Buffer.byteLength(JSON.stringify(model))
 
                     //estimate gas cost of calling whole BIM model stored on ethereum
-                    const estimatedGas = await onchainSmartContract.methods.getOffchainModels().estimateGas()
+                    const estimatedGas = await onchainSmartContract.methods.getOnchainModels(selectedKey).estimateGas()
 
                     //summary measurement data to googlesheets
                     const measurement_data = {
@@ -214,7 +213,7 @@ function Onchain100(props) {
                         "method" : "onchain100",
                         "operation"	: "download",
                         "file_key" : selectedKey,
-                        "file_name" : "",
+                        "file_name" : file_name,
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes
