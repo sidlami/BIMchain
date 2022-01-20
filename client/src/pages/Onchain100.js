@@ -85,6 +85,7 @@ function Onchain100(props) {
 
     //function uploads bim model to ethereum
     const upload = async () => {
+        var error_measurement_data = null
         try {
             //authenticate to forge app
             const token = await authenticateToForge()
@@ -124,9 +125,21 @@ function Onchain100(props) {
                 var file_size = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
                 console.log("size of to be uploaded bim model in bytes:", file_size)
 
-                //estimate gas
-                const estimatedGas = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).estimateGas()
-                console.log("estimate gas cost of uploading whole BIM model:", estimatedGas)
+                //measurement data in case storage on-chain is not possible due exceeding block gas limit of 30 Mio
+                error_measurement_data = {
+                    "timestamp" : (new Date()).toString(),
+                    "method" : "onchain100",
+                    "operation"	: "failed_upload",
+                    "file_key" : toBeUploadedModel,
+                    "file_name" : metadata.data.data.metadata[0].name,
+                    "file_size_ipfs" : 0, //in bytes
+                    "file_size_oss" : 0, //in bytes
+                    "file_size_ethereum" : file_size, //in bytes
+                    "gas_write"	: 0,
+                    "gas_read" : 0,
+                    "time" : 0,
+                    "extra_time" : 0
+                }
 
                 //upload metadata and geometry of the selected BIM model to ethereum
                 const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user})
@@ -174,6 +187,25 @@ function Onchain100(props) {
             }
         } catch (error) {
             console.log(error)
+
+            //if error due to used gas exceeding blokc gas limit of 30M
+            if(false & error_measurement_data !== null){
+                console.log("measurement result:", error_measurement_data)
+
+                //add measurement data to googlesheets
+                if(props.testing){
+                    await axios.post(
+                        'https://sheet.best/api/sheets/ee03ddbd-4298-426f-9b3f-f6a202a1b667',
+                        error_measurement_data  
+                    )
+                    window.location.reload()
+                }else{
+                    alert("file: "+toBeUploadedModel+" uploaded to Ethereum. View console to check measurement data of upload to Ethereum. Please reload the page to select this newly uploaded file for download.")
+
+                }
+            }else{
+                console.log("error measurement data does not exist!")
+            }
         }
     }
 

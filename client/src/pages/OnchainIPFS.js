@@ -52,7 +52,7 @@ function OnchainIPFS(props) {
         //compute performance time of calling aka "downloading" one IPFS key from ethereum
         const performance_time_per_key = (end.getTime() - start.getTime())/models.length
         setExtraDownloadTime(performance_time_per_key)
-        console.log("measured performance time for calling one OSS key stored on ethereum (in ms):", performance_time_per_key)
+        console.log("measured performance time for calling one IPFS key stored on ethereum (in ms):", performance_time_per_key)
       } catch (error) {
         console.log(error)
       }
@@ -69,12 +69,14 @@ function OnchainIPFS(props) {
     reader.readAsArrayBuffer(file)
     reader.onloadend = () => {
       setBuffer(Buffer(reader.result))
+      console.log("file captured!")
     }
   }
 
   //function uploads bim model to IPFS and stores the key on ethereum
   //https://www.youtube.com/watch?v=pTZVoqBUjvI&t=1320s
   const upload = async () => {
+    console.log("trying to upload to IPFS...")
     try {
       var end, start;
       start = new Date();
@@ -132,6 +134,7 @@ function OnchainIPFS(props) {
 
   //function downloads bim model from IPFS and loads it into frontend
   const download = async () => {
+    console.log("trying to download from IPFS...")
     try {
       var end, start;
       start = new Date();
@@ -140,6 +143,7 @@ function OnchainIPFS(props) {
 
       if(file){
         //print out model as string
+        console.log("ipfs fiel:", file)
         console.log("downloaded data from IPFS:", file.data)
 
         //compute performance time
