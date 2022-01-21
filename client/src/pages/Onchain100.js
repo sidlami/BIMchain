@@ -85,6 +85,7 @@ function Onchain100(props) {
 
     //function uploads bim model to ethereum
     const upload = async () => {
+        console.log("starting upload to Ethereum...")
         var error_measurement_data = null
         try {
             //authenticate to forge app
@@ -213,6 +214,7 @@ function Onchain100(props) {
     //function downloads bim model from ethereum and loads it into frontend
     const download = async () => {
         if(selectedKey){
+            console.log("starting download from Ethereum...")
             try {
                 var end, start;
                 start = new Date();

@@ -249,6 +249,7 @@ function On_offchain(props) {
 
   //function downloads bim model from CDE and loads it into frontend
   const download = async () => {
+    console.log("staring download from CDE...")
     try {
       
       //authenticate
