@@ -4,6 +4,7 @@ import axios from'axios';
 import moment from 'moment';
 import qs from 'qs';
 import {ADRESS_ONCHAIN100, ABI_ONCHAIN100, ADRESS, ABI} from '../config'; //importing the ganache truffle address of deployed smart contract as well as the abi of the smart contract
+import { indexOf } from 'lodash';
 
 //Connectin to IPFS via infura
 const ipfsClient = require('ipfs-http-client')
@@ -14,11 +15,11 @@ function Onchain100(props) {
 
     //state variables
     const [onchainSmartContract, setOnchainSmartContract] = useState(null) //holds the ethereum smart contract
-    const [size, setSize] = useState(null)
     const [personalBIMmodels, setPersonalBIMmodels] = useState([]) //holds an array of all personal bim models stored on ethereum
     const [uploadableBIMmodels, setUploadableBIMmodels] = useState([]) //holds an array of all BIM models in OSS which can be uploaded to ethereum
     const [user, setUser] = useState("") //holds the wallet address of the user in the frontend
     const [selectedKey, setSelectedKey] = useState("") //holds the key of the personal BIM model which was selected by the user for perfoming the onchain computation or was selected for a download
+    const [textInput, setTextInput] = useState("") //hols the manually enteres OSS key of the BIM model the user wants to upload
     const [toBeUploadedModel, setToBeUploadedModel] = useState("") //holds the selected OSS key of the BIM model the user wants to upload to ethereum 
 
     //on mount
@@ -91,9 +92,11 @@ function Onchain100(props) {
             //authenticate to forge app
             const token = await authenticateToForge()
 
+            const key = textInput?textInput:toBeUploadedModel
+
             //get metadata based on the selected key of the to be uploaded model
             const metadata = await axios.get(
-                `https://developer.api.autodesk.com/modelderivative/v2/designdata/${toBeUploadedModel}/metadata`, 
+                `https://developer.api.autodesk.com/modelderivative/v2/designdata/${key}/metadata`, 
                 {
                 headers : {
                     Authorization: `Bearer ${token}`
@@ -106,7 +109,7 @@ function Onchain100(props) {
             
             //get properties based on selected key and guid
             const properties = await axios.get(
-                `https://developer.api.autodesk.com/modelderivative/v2/designdata/${toBeUploadedModel}/metadata/${guid}/properties`, 
+                `https://developer.api.autodesk.com/modelderivative/v2/designdata/${key}/metadata/${guid}/properties`, 
                 {
                 headers : {
                     Authorization: `Bearer ${token}`
@@ -126,12 +129,16 @@ function Onchain100(props) {
                 var file_size = Buffer.byteLength(JSON.stringify(metadata.data.data.metadata)) + Buffer.byteLength(JSON.stringify(properties.data.data.collection))
                 console.log("size of to be uploaded bim model in bytes:", file_size)
 
+                //compute estimated gas cost
+                const estimatedGas = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).estimateGas()
+                console.log("gas for uploading bim model will be estimately:", estimatedGas)
+
                 //measurement data in case storage on-chain is not possible due exceeding block gas limit of 30 Mio
                 error_measurement_data = {
                     "timestamp" : (new Date()).toString(),
                     "method" : "onchain100",
                     "operation"	: "failed_upload",
-                    "file_key" : toBeUploadedModel,
+                    "file_key" : key,
                     "file_name" : metadata.data.data.metadata[0].name,
                     "file_size_ipfs" : 0, //in bytes
                     "file_size_oss" : 0, //in bytes
@@ -143,11 +150,9 @@ function Onchain100(props) {
                 }
 
                 //upload metadata and geometry of the selected BIM model to ethereum
-                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user})
+                const receipt = await onchainSmartContract.methods.setOnchainModels(JSON.stringify(metadata.data.data.metadata), JSON.stringify(properties.data.data.collection)).send({from : user, gas : estimatedGas})
 
                 if(receipt){
-
-                    console.log(receipt)
 
                     //get transaction's used gas amount
                     //web3-documentation: https://web3js.readthedocs.io/en/v1.2.11/web3-eth.html#gettransactionreceipt
@@ -158,7 +163,7 @@ function Onchain100(props) {
                         "timestamp" : (new Date()).toString(),
                         "method" : "onchain100",
                         "operation"	: "upload",
-                        "file_key" : toBeUploadedModel,
+                        "file_key" : key,
                         "file_name" : metadata.data.data.metadata[0].name,
                         "file_size_ipfs" : 0, //in bytes
                         "file_size_oss" : 0, //in bytes
@@ -179,7 +184,7 @@ function Onchain100(props) {
                         )
                         window.location.reload()
                     }else{
-                        alert("file: "+toBeUploadedModel+" uploaded to Ethereum. View console to check measurement data of upload to Ethereum. Please reload the page to select this newly uploaded file for download.")
+                        alert("file: "+key+" uploaded to Ethereum. View console to check measurement data of upload to Ethereum. Please reload the page to select this newly uploaded file for download.")
 
                     }
                 }
@@ -285,6 +290,9 @@ function Onchain100(props) {
 
         {uploadableBIMmodels?
             <div>
+                <label htmlFor="enter-uploadable-model">Enter OSS key of BIM model you want to upload: </label>
+                <input type="text" value={textInput} onChange={e => uploadableBIMmodels.indexOf(e.target.value) > -1 ? setTextInput(e.target.value) : alert("this key does not belong to any model in OSS!")}></input>
+                <br></br>
                 <label htmlFor="select-uploadable-model">Select your BIM model you want to upload: </label>
                 <select name="select-uploadable-model" value={toBeUploadedModel} onChange={(e)=>setToBeUploadedModel(e.target.value)}>
                     <option value="" disabled hidden>Choose here</option>
@@ -311,7 +319,7 @@ function Onchain100(props) {
         <div>
             <label htmlFor="select-model">Select your personal BIM model on Ethereum: </label>
             <select name="select-model" value={selectedKey} onChange={(e)=>setSelectedKey(e.target.value)}>
-                <option value="" disabled hidden>Choose here</option>
+                <option value="" disabled hidden>Chose here</option>
                 {
                     personalBIMmodels.map(item =>{
                         return(
