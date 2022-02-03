@@ -143,7 +143,7 @@ function OnchainIPFS(props) {
 
       if(file){
         //print out model as string
-        console.log("ipfs fiel:", file)
+        console.log("ipfs file:", file)
         console.log("downloaded data from IPFS:", file.data)
 
         //compute performance time

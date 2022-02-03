@@ -169,7 +169,7 @@ function Onchain100(props) {
                         "file_size_oss" : 0, //in bytes
                         "file_size_ethereum" : file_size, //in bytes
                         "gas_write"	: gas,
-                        "gas_read" : 0,
+                        "gas_read" : 0, 
                         "time" : 0,
                         "extra_time" : 0
                     }
@@ -195,7 +195,7 @@ function Onchain100(props) {
             console.log(error)
 
             //if error due to used gas exceeding blokc gas limit of 30M
-            if(false & error_measurement_data !== null){
+            if(error_measurement_data !== null){
                 console.log("measurement result:", error_measurement_data)
 
                 //add measurement data to googlesheets
