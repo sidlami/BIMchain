@@ -144,7 +144,10 @@ function On_offchain(props) {
                           "3d"
                       ],
                       advanced: {
-                        generateMasterViews: true
+                        conversionMethod : 'modern', //a must due to to be translated BIM model's format: IFC
+                        buildingStoreys : 'show', //adds IfcBuildingStoreys to model
+                        spaces : 'show', //adds IfcSpace to model
+                        openingElements : 'show' //adds IfcOpeningElement to model
                       }
                   }
               ]
@@ -282,6 +285,18 @@ function On_offchain(props) {
         }
       )
       var end = new Date();
+      
+      /*
+      const metadata_by_guid = await axios.get(
+        `https://developer.api.autodesk.com/modelderivative/v2/designdata/${selectedURN}/metadata/${guid}`, 
+        {
+          headers : {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      console.log("test: metadata by guid:", metadata_by_guid)
+      */
       
       //check if model is how it should be
       if(metadata !== null & properties !== null & properties.data.data.collection !== null){
