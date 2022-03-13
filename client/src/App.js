@@ -11,7 +11,7 @@ function App() {
 
   return (
     <div style={{position: "absolute", left: "50px", backgroundColor : testingMode ? "#f8e3fa" : "#FFFFFF"}}>
-      <h1>Welcome to BIMchain</h1>
+      <h1>Abschlussarbeit Sid Lamichhane</h1>
       <label htmlFor='slider'>Activate testing mode:</label>
       <input name="slider" type="checkbox" onClick={() => setTestingMode(!testingMode)}></input>
       <p>
@@ -25,17 +25,17 @@ function App() {
         <option value={2}>onchain storage (IPFS/Filecoin)</option>
       </select>*/}
       <div style={{position: "absolute", left: "25px", backgroundColor : testingMode ? "#f8e3fa" : "#FFFFFF"}}>
-        <h3>1. ON- AND OFFCHAIN STORAGE</h3>
+        <h3>1. ON- AND OFFCHAIN STORAGE VIA A CDE</h3>
         <On_offchain testing={testingMode}></On_offchain>
         <br></br>
         <br></br>
         
-        <h3>2. ONCHAIN STORAGE (IPFS)</h3>
+        <h3>2. ON- AND OFFCHAIN STORAGE VIA IPFS</h3>
         <OnchainIPFS testing={testingMode}></OnchainIPFS>
         <br></br>
         <br></br>
 
-        <h3>3. ONCHAIN STORAGE (100% ON ETHEREUM)</h3>
+        <h3>3. ONCHAIN STORAGE (all data is fully on Ethereum)</h3>
         <Onchain100 testing={testingMode}></Onchain100>
         <br></br>
         <br></br>

@@ -290,9 +290,10 @@ function Onchain100(props) {
 
         {uploadableBIMmodels?
             <div>
+                {/*
                 <label htmlFor="enter-uploadable-model">Enter OSS key of BIM model you want to upload: </label>
                 <input type="text" value={textInput} onChange={e => uploadableBIMmodels.indexOf(e.target.value) > -1 ? setTextInput(e.target.value) : alert("this key does not belong to any model in OSS!")}></input>
-                <br></br>
+                <br></br>*/}
                 <label htmlFor="select-uploadable-model">Select your BIM model you want to upload: </label>
                 <select name="select-uploadable-model" value={toBeUploadedModel} onChange={(e)=>setToBeUploadedModel(e.target.value)}>
                     <option value="" disabled hidden>Choose here</option>
